@@ -168,7 +168,11 @@ FN(f_choose) {
 }
 FN(f_randomize) {
     UNUSED;
-    RUN->random_state = (uint64_t)ar_run_time_ms() * 6364136223846793005ULL + 1442695040888963407ULL;
+    // ALPHARUNE_SEED makes each run the same, for the replays of the tools.
+    const char *seed = getenv("ALPHARUNE_SEED");
+    uint64_t base = seed ? (uint64_t)strtoull(seed, NULL, 10) : (uint64_t)ar_run_time_ms();
+    RUN->random_state = base * 6364136223846793005ULL + 1442695040888963407ULL;
+    if (RUN->random_state == 0) RUN->random_state = 1;
     return ar_undefined();
 }
 FN(f_random_set_seed) {

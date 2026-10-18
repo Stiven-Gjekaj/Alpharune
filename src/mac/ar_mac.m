@@ -6,7 +6,8 @@
 //   --frames N        Run N frames (default 300).
 //   --shot N          Save a PNG of the window each N frames (default 30).
 //   --out DIR         The directory of the PNG files (default build/frames).
-//   --save DIR        The directory for the files that the game writes.
+//   --save DIR        The directory for the files that the game writes
+//                     (default: a new empty directory).
 //   --key F:NAME      Press the key NAME at frame F, for one frame.
 //   --hold F:NAME:N   Hold the key NAME from frame F for N frames.
 //   --room NAME       Go to a room after the first frame.
@@ -172,9 +173,19 @@ int main(int argc, char **argv) {
             return 1;
         }
 
+        // With no --save, each run starts with an empty directory of its
+        // own, so that two runs of one script give the same frames.
         char save_dir[2048];
-        snprintf(save_dir, sizeof(save_dir), "%s", save ? save : "build/save");
-        mkdir(save_dir, 0755);
+        if (save) {
+            snprintf(save_dir, sizeof(save_dir), "%s", save);
+            mkdir(save_dir, 0755);
+        } else {
+            snprintf(save_dir, sizeof(save_dir), "%s/alpharune-save-XXXXXX", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp");
+            if (!mkdtemp(save_dir)) {
+                fprintf(stderr, "alpharune-mac: no directory for the save files\n");
+                return 1;
+            }
+        }
         mkdir(out, 0755);
         if (!getenv("ALPHARUNE_SEED")) setenv("ALPHARUNE_SEED", "1", 1);
         ARHostConfig hc;

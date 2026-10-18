@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.7.0 (2026-10-18)
+
+Chapter 1 plays to the end. A replay on the Mac goes from the chapter
+select through the Field, the Great Board, the Forest, Card Castle, the
+King, the fountain, and the night, to the screen after the credits.
+
+- The replay `tests/play/chapter1.keys` reaches the end of Chapter 1 at
+  frame 397900. `scripts/replay.sh` checks this in about 80 seconds on the
+  Mac, and `scripts/release.sh` runs it before each release.
+- The VM reads and writes `inst.arr[i]` on the correct instance. Before,
+  it used the instance of the code, and the Clover puzzle in the Forest
+  did not open.
+- The app icon has a transparent background on the home screen.
+- A debug build logs the resident memory with the speed of each room.
+- The debug command `get NAME INDEX` shows one item of a global array.
+
+The replay sets the HP and the attack of the party with debug commands,
+so that it does not lose a battle. It does not use the shops, the menus,
+the ITEM and SPARE commands, or the secret boss yet. Nobody has played
+all of Chapter 1 on the phone yet. Version 1.0 does these.
+
 ## 0.6.0 (2026-10-18)
 
 This is the first release. It holds the work of the milestones 0.1 to 0.6.

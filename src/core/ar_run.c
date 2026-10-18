@@ -1201,15 +1201,28 @@ void ar_run_debug(ARRun *run, const char *command) {
         }
         return;
     }
-    if (sscanf(command, "get %63s", word) == 1) {
-        // A global variable, with up to two levels of arrays.
+    int item;
+    int got = sscanf(command, "get %63s %d", word, &item);
+    if (got >= 1) {
+        // A global variable, with up to two levels of arrays, or one item
+        // of a global array: "get flag 234".
         ARValue *v = ar_vars_find(&ar_vm_global(run->vm)->vars, ar_vm_slot(run->vm, word));
         if (!v) {
             fprintf(stderr, "  %s is not set\n", word);
             return;
         }
-        fprintf(stderr, "  %s =", word);
-        print_value(run, *v, 2);
+        ARValue value = *v;
+        if (got == 2) {
+            if (v->type != AR_ARRAY || !v->a) {
+                fprintf(stderr, "  %s is not an array\n", word);
+                return;
+            }
+            value = ar_array_get(v->a, item);
+            fprintf(stderr, "  %s[%d] =", word, item);
+        } else {
+            fprintf(stderr, "  %s =", word);
+        }
+        print_value(run, value, 2);
         fprintf(stderr, "\n");
         return;
     }

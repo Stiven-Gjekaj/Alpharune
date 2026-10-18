@@ -94,6 +94,9 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     memset(&config, 0, sizeof(config));
     config.base_dir = kBaseDir.fileSystemRepresentation;
     config.save_dir = save.fileSystemRepresentation;
+    // The decoded texture pages, so that a later start does not decode them.
+    NSString *cache = [kBaseDir stringByAppendingPathComponent:@"cache"];
+    config.cache_dir = cache.fileSystemRepresentation;
     config.gfx = ar_gl_gfx();
     char error[256];
     _host = ar_host_open(&config, error, sizeof(error));

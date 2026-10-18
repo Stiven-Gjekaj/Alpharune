@@ -30,6 +30,9 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     GLint _height;
     CADisplayLink *_link;
     BOOL _started;
+#ifdef AR_DEBUG
+    CFTimeInterval _startTime;
+#endif
     UILabel *_message;
     ARHost *_host;
     ARPads _pads;
@@ -77,6 +80,9 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
 
 - (void)start {
     _started = YES;
+#ifdef AR_DEBUG
+    _startTime = CACurrentMediaTime();
+#endif
     ar_pads_layout(&_pads, _width, _height);
 #ifdef AR_DEBUG
     // A debug build writes its messages to a file that ssh can read.
@@ -205,6 +211,15 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     static double total, worst;
     static int frames;
     double ms = (CACurrentMediaTime() - t0) * 1000;
+    // The time from the start of the app to the first frame, and each frame
+    // that takes longer than 100 ms, for example to load a texture page.
+    static int first = 1;
+    if (first) {
+        first = 0;
+        fprintf(stderr, "first frame: %.0f ms after the start\n", (CACurrentMediaTime() - _startTime) * 1000);
+    } else if (ms > 100) {
+        fprintf(stderr, "slow frame: %.0f ms, room %s\n", ms, ar_run_room_name(ar_host_run(_host)));
+    }
     total += ms;
     if (ms > worst) worst = ms;
     if (++frames == 150) {

@@ -1213,6 +1213,23 @@ void ar_run_debug(ARRun *run, const char *command) {
         fprintf(stderr, "\n");
         return;
     }
+    if (sscanf(command, "boxes %63s", word) == 1) {
+        // The boxes of the instances of an object and of its children.
+        int object = -1;
+        for (int i = 0; i < run->data->object_count; i++) {
+            if (strcmp(run->data->objects[i].name, word) == 0) object = i;
+        }
+        int count = ar_vm_instance_count(run->vm);
+        for (int i = 0; i < count && object >= 0; i++) {
+            ARInstance *inst = ar_vm_instance_at(run->vm, i);
+            double l, t, r, b;
+            if (inst->destroyed || !ar_vm_is_object(run->vm, inst->object, object)) continue;
+            if (!ar_run_bbox(run, inst, &l, &t, &r, &b)) continue;
+            fprintf(stderr, "  box %d %s %.1f %.1f %.1f %.1f\n", inst->id, run->data->objects[inst->object].name, l, t,
+                    r, b);
+        }
+        return;
+    }
     int id;
     double range;
     if (sscanf(command, "near %d %lf", &id, &range) == 2) {

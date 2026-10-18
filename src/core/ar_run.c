@@ -667,6 +667,9 @@ static int compare_draw(const void *a, const void *b) {
     const DrawItem *x = a, *y = b;
     if (x->depth != y->depth) return x->depth > y->depth ? -1 : 1;
     if (x->kind != y->kind) return x->kind - y->kind;
+    // GameMaker puts a new instance at the front of its layer, so of two
+    // instances of one depth the newer draws first.
+    if (x->kind == 1) return y->order - x->order;
     return x->order - y->order;
 }
 

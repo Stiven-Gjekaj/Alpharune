@@ -197,6 +197,26 @@ AR_TEST(test_run_steps_a_new_room_before_it_draws_it) {
     end_game(&g);
 }
 
+AR_TEST(test_run_draws_the_newer_of_two_instances_of_one_depth_first) {
+    Game g = {ar_asm_new()};
+    add_capture(g.a);
+    int first = ar_asm_object(g.a, "obj_first", -1);
+    int second = ar_asm_object(g.a, "obj_second", -1);
+    // Both have the depth 0. obj_first is made first, so obj_second draws
+    // first, and the order of the draw is 21.
+    int init = ar_asm_code(g.a, "gml_Room_room_a_Create", 0, "pushi 0\npop.v.i -5.order\n");
+    ar_asm_event(g.a, first, AR_EV_DRAW, 0, order_code(g.a, "gml_Object_obj_first_Draw_0", 1));
+    ar_asm_event(g.a, second, AR_EV_DRAW, 0, order_code(g.a, "gml_Object_obj_second_Draw_0", 2));
+    ar_asm_room(g.a, "room_a", 320, 240, init);
+    ar_asm_instance(g.a, first, 0, 0, -1);
+    ar_asm_instance(g.a, second, 0, 0, -1);
+    AR_EXPECT(start_game(&g));
+    ar_run_start(g.run);
+    ar_run_frame(g.run);
+    AR_EQUAL_INT(global_of(vm_of(&g), "order"), 21);
+    end_game(&g);
+}
+
 AR_TEST(test_run_gives_new_instances_ids_after_the_ids_of_the_rooms) {
     Game g = {ar_asm_new()};
     add_capture(g.a);

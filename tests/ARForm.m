@@ -132,6 +132,18 @@ void ar_form_label(ARForm *f, const char *label) {
     l->offset = (uint32_t)f->size;
 }
 
+int ar_form_string_index(ARForm *f, const char *text) {
+    for (int i = 0; i < f->string_count; i++) {
+        if (strcmp(f->strings[i], text) == 0) return i;
+    }
+    if (f->string_count == f->string_capacity) {
+        f->string_capacity = f->string_capacity * 2 + 16;
+        f->strings = realloc(f->strings, (size_t)f->string_capacity * sizeof(char *));
+    }
+    f->strings[f->string_count++] = strdup(text);
+    return f->string_count - 1;
+}
+
 uint32_t ar_form_offset(ARForm *f) {
     return (uint32_t)f->size;
 }
@@ -168,4 +180,35 @@ const uint8_t *ar_form_finish(ARForm *f, size_t *size) {
     free(text);
     *size = f->size;
     return f->b;
+}
+
+// The GEN8 chunk of bytecode 17, with a window of 640 x 480, two rooms in
+// the room order, and 30 frames each second.
+void ar_form_gen8(ARForm *f) {
+    ar_form_chunk(f, "GEN8");
+    ar_form_u32(f, 1 | 17 << 8);  // debug off, bytecode 17
+    ar_form_str(f, "GAME");      // file name
+    ar_form_str(f, "Default");   // config
+    ar_form_u32(f, 100000);      // last object
+    ar_form_u32(f, 10000000);    // last tile
+    ar_form_u32(f, 0);           // game id
+    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // guid
+    ar_form_str(f, "GAME");      // name
+    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // version
+    ar_form_u32(f, 640);
+    ar_form_u32(f, 480);
+    ar_form_u32(f, 0);           // info
+    ar_form_u32(f, 0);           // licence crc
+    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // licence md5
+    ar_form_u32(f, 0);           // timestamp
+    ar_form_u32(f, 0);
+    ar_form_str(f, "The Game");  // display name
+    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // targets, classes
+    ar_form_u32(f, 0);           // steam
+    ar_form_u32(f, 0);           // debugger port
+    ar_form_u32(f, 2);           // room order
+    ar_form_u32(f, 1);
+    ar_form_u32(f, 0);
+    for (int i = 0; i < 10; i++) ar_form_u32(f, 0);  // five random numbers
+    ar_form_f32(f, 30);
 }

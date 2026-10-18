@@ -28,6 +28,11 @@ void ar_form_ptr(ARForm *form, const char *label);
 // Puts the file offset of the text of a string, as a word. The string goes
 // into the STRG chunk.
 void ar_form_str(ARForm *form, const char *text);
+// The index of a string in the STRG chunk. Adds the string when it is new.
+int ar_form_string_index(ARForm *form, const char *text);
+// Adds a GEN8 chunk of bytecode 17, with a window of 640 x 480, the room
+// order 1, 0, and 30 frames each second.
+void ar_form_gen8(ARForm *form);
 // Marks the current offset with a label.
 void ar_form_label(ARForm *form, const char *label);
 // The current file offset.

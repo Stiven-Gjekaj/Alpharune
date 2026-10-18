@@ -4,37 +4,6 @@
 #include "ARForm.h"
 #include "ar_data.h"
 
-// The GEN8 chunk of bytecode 17, with a window of 640 x 480, two rooms in
-// the room order, and 30 frames each second.
-static void put_gen8(ARForm *f) {
-    ar_form_chunk(f, "GEN8");
-    ar_form_u32(f, 1 | 17 << 8);  // debug off, bytecode 17
-    ar_form_str(f, "GAME");      // file name
-    ar_form_str(f, "Default");   // config
-    ar_form_u32(f, 100000);      // last object
-    ar_form_u32(f, 10000000);    // last tile
-    ar_form_u32(f, 0);           // game id
-    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // guid
-    ar_form_str(f, "GAME");      // name
-    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // version
-    ar_form_u32(f, 640);
-    ar_form_u32(f, 480);
-    ar_form_u32(f, 0);           // info
-    ar_form_u32(f, 0);           // licence crc
-    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // licence md5
-    ar_form_u32(f, 0);           // timestamp
-    ar_form_u32(f, 0);
-    ar_form_str(f, "The Game");  // display name
-    for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // targets, classes
-    ar_form_u32(f, 0);           // steam
-    ar_form_u32(f, 0);           // debugger port
-    ar_form_u32(f, 2);           // room order
-    ar_form_u32(f, 1);
-    ar_form_u32(f, 0);
-    for (int i = 0; i < 10; i++) ar_form_u32(f, 0);  // five random numbers
-    ar_form_f32(f, 30);
-}
-
 static void put_list(ARForm *f, int count, const char *prefix) {
     char label[48];
     ar_form_u32(f, (uint32_t)count);
@@ -59,7 +28,7 @@ AR_TEST(test_data_refuses_a_file_that_is_not_a_form) {
 
 AR_TEST(test_data_refuses_a_file_with_an_old_bytecode) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     size_t size;
     uint8_t *bytes = (uint8_t *)ar_form_finish(f, &size);
     bytes[17] = 14;  // The second byte of the GEN8 data.
@@ -71,7 +40,7 @@ AR_TEST(test_data_refuses_a_file_with_an_old_bytecode) {
 
 AR_TEST(test_data_reads_the_general_info) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     size_t size;
     const uint8_t *bytes = ar_form_finish(f, &size);
     ARData data;
@@ -90,7 +59,7 @@ AR_TEST(test_data_reads_the_general_info) {
 
 AR_TEST(test_data_refuses_a_damaged_list) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     ar_form_chunk(f, "SCPT");
     ar_form_u32(f, 1000000);  // A count that is larger than the file.
     size_t size;
@@ -140,7 +109,7 @@ static void put_sprite(ARForm *f) {
 
 AR_TEST(test_data_reads_a_sprite_and_its_texture_items) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     put_sprite(f);
     size_t size;
     const uint8_t *bytes = ar_form_finish(f, &size);
@@ -175,7 +144,7 @@ AR_TEST(test_data_reads_a_sprite_and_its_texture_items) {
 
 AR_TEST(test_data_reads_an_object_with_a_parent_and_events) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     ar_form_chunk(f, "OBJT");
     put_list(f, 1, "object");
     label(f, "object", 0);
@@ -229,7 +198,7 @@ AR_TEST(test_data_reads_an_object_with_a_parent_and_events) {
 
 AR_TEST(test_data_gives_minus_one_for_no_parent) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     ar_form_chunk(f, "OBJT");
     put_list(f, 1, "object");
     label(f, "object", 0);
@@ -248,7 +217,7 @@ AR_TEST(test_data_gives_minus_one_for_no_parent) {
 
 AR_TEST(test_data_reads_a_room_with_views_instances_and_layers) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     ar_form_chunk(f, "ROOM");
     put_list(f, 1, "room");
     label(f, "room", 0);
@@ -394,7 +363,7 @@ AR_TEST(test_data_reads_a_room_with_views_instances_and_layers) {
 
 AR_TEST(test_data_reads_code_variables_functions_and_scripts) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     ar_form_chunk(f, "CODE");
     put_list(f, 2, "code");
     ar_form_label(f, "blob");
@@ -446,7 +415,7 @@ AR_TEST(test_data_reads_code_variables_functions_and_scripts) {
 
 AR_TEST(test_data_reads_the_variable_and_function_tables) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     ar_form_chunk(f, "VARI");
     ar_form_u32(f, 2);
     ar_form_u32(f, 2);
@@ -499,7 +468,7 @@ AR_TEST(test_data_reads_the_variable_and_function_tables) {
 
 AR_TEST(test_data_reads_a_font_a_sound_and_the_audio) {
     ARForm *f = ar_form_new();
-    put_gen8(f);
+    ar_form_gen8(f);
     put_sprite(f);
     ar_form_chunk(f, "FONT");
     put_list(f, 1, "font");

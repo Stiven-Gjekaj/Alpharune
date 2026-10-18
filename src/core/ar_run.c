@@ -1091,10 +1091,13 @@ void ar_run_debug(ARRun *run, const char *command) {
         int count = ar_vm_instance_count(run->vm);
         for (int i = 0; i < count; i++) {
             ARInstance *inst = ar_vm_instance_at(run->vm, i);
-            fprintf(stderr, "  %d %s at %.0f,%.0f depth %.0f%s%s%s\n", inst->id,
+            fprintf(stderr, "  %d %s at %.0f,%.0f depth %.0f%s%s%s", inst->id,
                     run->data->objects[inst->object].name, inst->x, inst->y, inst->depth,
                     inst->active ? "" : " inactive", inst->destroyed ? " destroyed" : "",
                     inst->persistent ? " persistent" : "");
+            if (inst->image_xscale != 1 || inst->image_yscale != 1)
+                fprintf(stderr, " scale %.2f,%.2f", inst->image_xscale, inst->image_yscale);
+            fprintf(stderr, "\n");
         }
         return;
     }

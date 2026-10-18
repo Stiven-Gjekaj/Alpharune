@@ -47,8 +47,7 @@ gh release create "$TAG" -R "$REPO" -t "Alpharune $VERSION" -F build/notes.md "b
 (
     cd "$CYDIA"
     scripts/update.sh "$ROOT/build/$DEB"
-    # update.sh also makes the page of the repository again.
-    git add debs Packages Packages.bz2 Packages.gz Release index.html $(ls -d icons 2>/dev/null)
+    git add debs Packages Packages.bz2 Packages.gz Release
     git commit -qm "feat: add Alpharune $VERSION"
     export ROW="| Alpharune (\`io.github.stivengjekaj.alpharune\`) | $VERSION | iOS 6 or newer |"
     if grep -q '^| Alpharune (' README.md; then

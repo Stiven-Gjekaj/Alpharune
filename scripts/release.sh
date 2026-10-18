@@ -1,7 +1,8 @@
 #!/bin/sh
 # Make a release of the version in resources/Info.plist.
 # Usage: scripts/release.sh
-# It runs the tests on this Mac and on the phone, builds the .deb, pushes
+# It runs the tests and the replay of Chapter 1 on this Mac, the tests on the
+# phone, builds the .deb, pushes
 # the commits and the tag, publishes the GitHub release with the notes of
 # CHANGELOG.md, adds the .deb to the Cydia repository in ../cydia, and
 # closes the milestone of the version with its issues.
@@ -24,6 +25,7 @@ fi
 
 scripts/test.sh >build/release-tests.log || { cat build/release-tests.log >&2; exit 1; }
 tail -1 build/release-tests.log
+scripts/replay.sh
 scripts/test.sh --phone >build/release-tests.log || { cat build/release-tests.log >&2; exit 1; }
 tail -1 build/release-tests.log
 scripts/deb.sh >/dev/null

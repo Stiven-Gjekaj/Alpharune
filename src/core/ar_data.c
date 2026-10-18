@@ -152,6 +152,7 @@ static int32_t find_offset(const OffsetIndex *table, int32_t count, uint32_t off
 static int read_gen8(Reader *r, uint32_t o) {
     ARData *d = r->data;
     d->bytecode = r->b[o + 1];
+    d->last_object = i32(r, o + 12);
     d->name = str(r, o + 40);
     d->window_w = i32(r, o + 60);
     d->window_h = i32(r, o + 64);

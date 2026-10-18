@@ -46,6 +46,7 @@ AR_TEST(test_data_reads_the_general_info) {
     ARData data;
     AR_EXPECT(ar_data_read(&data, bytes, size));
     AR_EQUAL_INT(data.bytecode, 17);
+    AR_EQUAL_INT(data.last_object, 100000);
     AR_EQUAL(@(data.name), @"GAME");
     AR_EQUAL(@(data.display_name), @"The Game");
     AR_EQUAL_INT(data.window_w, 640);

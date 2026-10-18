@@ -243,6 +243,9 @@ typedef struct ARData {
     size_t size;
 
     int bytecode;
+    // The largest id of an instance in the rooms. The ids of new instances
+    // start after it.
+    int32_t last_object;
     const char *name;
     const char *display_name;
     int32_t window_w, window_h;

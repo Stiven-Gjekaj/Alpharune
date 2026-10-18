@@ -664,7 +664,7 @@ ARVM *ar_vm_new(const ARData *data) {
     vm->global->h.fixed = 1;
     vm->stack = malloc(sizeof(ARValue) * STACK_SIZE);
     vm->sizes = malloc(STACK_SIZE);
-    vm->next_id = AR_FIRST_INSTANCE_ID;
+    vm->next_id = data->last_object >= AR_FIRST_INSTANCE_ID ? data->last_object + 1 : AR_FIRST_INSTANCE_ID;
     vm->logged = calloc((size_t)data->function_count + 1, 1);
 
     vm->strings = malloc(sizeof(ARStr *) * (size_t)(data->string_count + 1));

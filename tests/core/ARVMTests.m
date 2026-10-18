@@ -339,8 +339,9 @@ AR_TEST(test_vm_runs_with_over_the_instances_of_an_object_and_its_children) {
     AR_EQUAL_INT(ar_vars_find(&b->vars->vars, hp)->r, 4);
     AR_EXPECT(ar_vars_find(&player->vars->vars, hp) == NULL);
     AR_EQUAL_INT(gLogCount, 2);
-    AR_EQUAL_INT(gLogged[0].r, 1001);  // one argument, instance 1
-    AR_EQUAL_INT(gLogged[1].r, 1002);
+    // One argument, and the id of each instance after the first id.
+    AR_EQUAL_INT(gLogged[0].r, 1000 + a->id - AR_FIRST_INSTANCE_ID);
+    AR_EQUAL_INT(gLogged[1].r, 1000 + b->id - AR_FIRST_INSTANCE_ID);
     unlink_program(&p);
 }
 

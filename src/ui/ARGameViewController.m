@@ -175,6 +175,15 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
         }
         return;
     }
+    const char *notice = ar_host_notice(_host);
+    if (notice) {
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:nil
+                                                        message:@(notice)
+                                                       delegate:nil
+                                              cancelButtonTitle:@"OK"
+                                              otherButtonTitles:nil];
+        [alert show];
+    }
     [self setRate];
     int w, h;
     int window = ar_run_window(ar_host_run(_host), &w, &h);

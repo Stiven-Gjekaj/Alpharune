@@ -261,6 +261,8 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "end at frame %ld: %s\n", f + 1, ar_host_error(host)[0] ? ar_host_error(host) : "game_end");
                 return 0;
             }
+            const char *notice = ar_host_notice(host);
+            if (notice) fprintf(stderr, "frame %ld: notice: %s\n", f + 1, notice);
             if (strcmp(ar_host_dir(host), dir_now) != 0) {
                 snprintf(dir_now, 1024, "%s", ar_host_dir(host));
                 fprintf(stderr, "frame %ld: data in %s\n", f + 1, dir_now);

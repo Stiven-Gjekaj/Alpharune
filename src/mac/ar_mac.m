@@ -199,9 +199,20 @@ int main(int argc, char **argv) {
         // Runs one frame with the keys of the script. Returns 0 at the end.
         int (^one_frame)(void) = ^int(void) {
             ARRun *run = ar_host_run(host);
+            // The releases go first, and a key that another hold still
+            // covers stays down.
+            for (int k = 0; k < key_count; k++) {
+                if (keys[k].frame + keys[k].length != f) continue;
+                int held = 0;
+                for (int j = 0; j < key_count; j++) {
+                    if (j != k && keys[j].key == keys[k].key && keys[j].frame <= f &&
+                        f < keys[j].frame + keys[j].length)
+                        held = 1;
+                }
+                if (!held) ar_run_key(run, keys[k].key, 0);
+            }
             for (int k = 0; k < key_count; k++) {
                 if (keys[k].frame == f) ar_run_key(run, keys[k].key, 1);
-                if (keys[k].frame + keys[k].length == f) ar_run_key(run, keys[k].key, 0);
             }
             for (int k = 0; k < debug_count; k++) {
                 if (debug_frames[k] == f) ar_run_debug(run, debug_commands[k]);

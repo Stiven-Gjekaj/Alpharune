@@ -14,6 +14,12 @@ Each entry gives the reason. The owner made these choices on 2026-10-18.
   Balatro4S, takes too long. A runtime plays each chapter with the code of
   the game itself.
 - **1.0 plays Chapter 1.** Each later chapter is one more minor release.
+- **1.0 opens on the chapter select of Deltarune.** Only Chapter 1 opens.
+  The other chapters show that they come in a later version.
+- **1.0 is in English.** Japanese comes in a later release. Reason: the
+  Japanese font has many glyphs, and the A5 has 512 MB of memory.
+- **The saves use the format of the PC game.** A save from the Mac copies
+  to the phone and back.
 
 ## The assets of Deltarune
 

@@ -21,11 +21,11 @@
 #import <OpenGL/OpenGL.h>
 #import <OpenGL/gl.h>
 #include <fcntl.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "ar_data.h"
 #include "ar_gl.h"
+#include "ar_host.h"
 #include "ar_run.h"
 
 typedef struct {
@@ -130,114 +130,65 @@ int main(int argc, char **argv) {
         snprintf(save_dir, sizeof(save_dir), "%s", save ? save : "build/save");
         mkdir(save_dir, 0755);
         mkdir(out, 0755);
-        // The base directory holds the chapter select, the chapters, and the
-        // music.
-        char base[2048], dir[2048];
-        snprintf(base, sizeof(base), "%s", game_dir);
-        snprintf(dir, sizeof(dir), "%s", game_dir);
-        char music_dir[2048];
-        snprintf(music_dir, sizeof(music_dir), "%s/mus", base);
-        char *params[32] = {"alpharune"};
-        int param_count = 1;
+        ARHostConfig hc;
+        memset(&hc, 0, sizeof(hc));
+        hc.base_dir = game_dir;
+        hc.save_dir = save_dir;
+        hc.data_name = data_name;
+        hc.gfx = ar_gl_gfx();
+        char error[256];
+        double t0 = [NSDate timeIntervalSinceReferenceDate];
+        ARHost *host = ar_host_open(&hc, error, sizeof(error));
+        if (!host) {
+            fprintf(stderr, "alpharune-mac: %s\n", error);
+            return 1;
+        }
+        fprintf(stderr, "start: %.3f s, room %s\n", [NSDate timeIntervalSinceReferenceDate] - t0,
+                ar_run_room_name(ar_host_run(host)));
         double busy = 0;
         long f = 0;
-        while (f < frames) {
-            char path[2048];
-            snprintf(path, sizeof(path), "%s/%s", dir, data_name);
-            int fd = open(path, O_RDONLY);
-            if (fd < 0) {
-                fprintf(stderr, "alpharune-mac: cannot open %s\n", path);
-                return 1;
+        char dir_now[1024] = "";
+        uint8_t *pixels = NULL;
+        for (; f < frames; f++) {
+            ARRun *run = ar_host_run(host);
+            for (int k = 0; k < key_count; k++) {
+                if (keys[k].frame == f) ar_run_key(run, keys[k].key, 1);
+                if (keys[k].frame + keys[k].length == f) ar_run_key(run, keys[k].key, 0);
             }
-            struct stat st;
-            fstat(fd, &st);
-            const uint8_t *bytes = mmap(NULL, (size_t)st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-            close(fd);
-            ARData data;
-            if (!ar_data_read(&data, bytes, (size_t)st.st_size)) {
-                fprintf(stderr, "alpharune-mac: %s\n", data.error);
-                return 1;
+            for (int k = 0; k < debug_count; k++) {
+                if (debug_frames[k] == f) ar_run_debug(run, debug_commands[k]);
             }
-            ARRunConfig config;
-            memset(&config, 0, sizeof(config));
-            config.game_dir = dir;
-            config.save_dir = save_dir;
-            config.music_dir = music_dir;
-            config.parameters = (const char *const *)params;
-            config.parameter_count = param_count;
-            config.gfx = ar_gl_gfx();
-            char error[256];
-            ARRun *run = ar_run_new(&data, &config, error, sizeof(error));
-            if (!run) {
-                fprintf(stderr, "alpharune-mac: %s\n", error);
-                return 1;
+            if (room && f == 1) {
+                char command[128];
+                snprintf(command, sizeof(command), "room %s", room);
+                ar_run_debug(run, command);
             }
-            double t0 = [NSDate timeIntervalSinceReferenceDate];
-            ar_run_start(run);
-            fprintf(stderr, "start of %s: %.3f s, room %s\n", path, [NSDate timeIntervalSinceReferenceDate] - t0,
-                    ar_run_room_name(run));
-            int w, h;
-            int window = ar_run_window(run, &w, &h);
-            uint8_t *pixels = malloc((size_t)w * (size_t)h * 4);
-            ARGfx gfx = config.gfx;
-            int changed = 0;
-            for (; f < frames; f++) {
-                for (int k = 0; k < key_count; k++) {
-                    if (keys[k].frame == f) ar_run_key(run, keys[k].key, 1);
-                    if (keys[k].frame + keys[k].length == f) ar_run_key(run, keys[k].key, 0);
-                }
-                for (int k = 0; k < debug_count; k++) {
-                    if (debug_frames[k] == f) ar_run_debug(run, debug_commands[k]);
-                }
-                if (room && f == 1) {
-                    char command[128];
-                    snprintf(command, sizeof(command), "room %s", room);
-                    ar_run_debug(run, command);
-                }
-                double s = [NSDate timeIntervalSinceReferenceDate];
-                int going = ar_run_frame(run);
-                busy += [NSDate timeIntervalSinceReferenceDate] - s;
-                if ((shot > 0 && (f + 1) % shot == 0) || !going || f + 1 == frames) {
-                    glFinish();
-                    gfx.read(gfx.context, window, w, h, pixels);
-                    char name[2048];
-                    snprintf(name, sizeof(name), "%s/frame%05ld.png", out, f + 1);
-                    save_png(name, pixels, w, h);
-                    fprintf(stderr, "frame %ld: room %s\n", f + 1, ar_run_room_name(run));
-                }
-                if (!going) {
-                    char next[512], text[512];
-                    if (ar_run_change_request(run, next, sizeof(next), text, sizeof(text))) {
-                        fprintf(stderr, "game_change: %s %s\n", next, text);
-                        // The next data file is in a directory of the base.
-                        if (next[0] && strcmp(next, "/") != 0) {
-                            snprintf(dir, sizeof(dir), "%s/%s", base, next[0] == '/' ? next + 1 : next);
-                        } else {
-                            snprintf(dir, sizeof(dir), "%s", base);
-                        }
-                        for (int i = 1; i < param_count; i++) free(params[i]);
-                        param_count = 1;
-                        for (char *word = strtok(text, " "); word && param_count < 32; word = strtok(NULL, " ")) {
-                            params[param_count++] = strdup(word);
-                        }
-                        changed = 1;
-                        f++;
-                    } else if (ar_run_restart_request(run)) {
-                        fprintf(stderr, "game_restart\n");
-                        changed = 1;
-                        f++;
-                    } else {
-                        fprintf(stderr, "game_end\n");
-                    }
-                    break;
-                }
+            double s = [NSDate timeIntervalSinceReferenceDate];
+            int going = ar_host_frame(host);
+            busy += [NSDate timeIntervalSinceReferenceDate] - s;
+            if (!going) {
+                fprintf(stderr, "end at frame %ld: %s\n", f + 1, ar_host_error(host)[0] ? ar_host_error(host) : "game_end");
+                break;
             }
-            free(pixels);
-            ar_run_free(run);
-            ar_data_free(&data);
-            munmap((void *)bytes, (size_t)st.st_size);
-            if (!changed) break;
+            run = ar_host_run(host);
+            if (strcmp(ar_host_dir(host), dir_now) != 0) {
+                snprintf(dir_now, sizeof(dir_now), "%s", ar_host_dir(host));
+                fprintf(stderr, "frame %ld: data in %s\n", f + 1, dir_now);
+            }
+            if ((shot > 0 && (f + 1) % shot == 0) || f + 1 == frames) {
+                int w, h;
+                int window = ar_run_window(run, &w, &h);
+                pixels = realloc(pixels, (size_t)w * (size_t)h * 4);
+                glFinish();
+                hc.gfx.read(hc.gfx.context, window, w, h, pixels);
+                char name[2048];
+                snprintf(name, sizeof(name), "%s/frame%05ld.png", out, f + 1);
+                save_png(name, pixels, w, h);
+                fprintf(stderr, "frame %ld: room %s\n", f + 1, ar_run_room_name(run));
+            }
         }
+        free(pixels);
+        ar_host_close(host);
         fprintf(stderr, "%.2f ms each frame\n", busy * 1000 / (f > 0 ? f : 1));
         CGLSetCurrentContext(NULL);
         CGLDestroyContext(context);

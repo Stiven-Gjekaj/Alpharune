@@ -8,6 +8,11 @@ static uint32_t le32(const uint8_t *p) {
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
 }
 
+// A field of n bits as a signed number, in two's complement.
+static inline int sign(int value, int bits) {
+    return value >= 1 << (bits - 1) ? value - (1 << bits) : value;
+}
+
 static uint16_t le16(const uint8_t *p) {
     return (uint16_t)(p[0] | p[1] << 8);
 }
@@ -45,23 +50,24 @@ uint8_t *ar_texture_decode_qoi(const uint8_t *bytes, size_t size, int *width, in
                 if (p >= end) break;
                 run = (((b1 & 0x1F) << 8) | *p++) + 32;
             } else if ((b1 & 0xC0) == 0x80) {
-                r += ((b1 >> 4) & 3) - 2;
-                g += ((b1 >> 2) & 3) - 2;
-                b += (b1 & 3) - 2;
+                // The differences are signed fields, as GameMaker writes them.
+                r += sign((b1 >> 4) & 3, 2);
+                g += sign((b1 >> 2) & 3, 2);
+                b += sign(b1 & 3, 2);
             } else if ((b1 & 0xE0) == 0xC0) {
                 if (p >= end) break;
-                int b2 = *p++;
-                r += (b1 & 31) - 16;
-                g += (b2 >> 4) - 8;
-                b += (b2 & 15) - 8;
+                int merged = b1 << 8 | *p++;
+                r += sign((merged >> 8) & 31, 5);
+                g += sign((merged >> 4) & 15, 4);
+                b += sign(merged & 15, 4);
             } else if ((b1 & 0xF0) == 0xE0) {
                 if (end - p < 2) break;
-                int b2 = p[0], b3 = p[1];
+                int merged = b1 << 16 | p[0] << 8 | p[1];
                 p += 2;
-                r += (((b1 & 15) << 1) | (b2 >> 7)) - 16;
-                g += ((b2 & 124) >> 2) - 16;
-                b += (((b2 & 3) << 3) | ((b3 & 224) >> 5)) - 16;
-                a += (b3 & 31) - 16;
+                r += sign((merged >> 15) & 31, 5);
+                g += sign((merged >> 10) & 31, 5);
+                b += sign((merged >> 5) & 31, 5);
+                a += sign(merged & 31, 5);
             } else {
                 // A new value for each channel with a bit in b1.
                 if (b1 & 8) r = p < end ? *p++ : r;

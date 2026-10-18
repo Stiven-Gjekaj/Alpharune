@@ -44,9 +44,10 @@ AR_TEST(test_texture_decodes_colors_runs_and_the_index) {
 AR_TEST(test_texture_decodes_the_three_differences) {
     const uint8_t body[] = {
         0xFF, 100, 100, 100, 100,
-        0x80 | 3 << 4 | 1 << 2 | 2,  // +1, -1, +0
-        0xC0 | 20, 0x9 << 4 | 7,     // +4, +1, -1
-        0xE0 | 9, 0x80 | 15 << 2 | 2, 3 << 5 | 18,  // +3, -1, +3, +2
+        // The fields of a difference are signed: 3 in 2 bits is -1.
+        0x80 | 3 << 4 | 1 << 2 | 2,  // -1, +1, -2
+        0xC0 | 20, 0x9 << 4 | 7,     // -12, -7, +7
+        0xE0 | 9, 0x80 | 15 << 2 | 2, 3 << 5 | 18,  // -13, +15, -13, -14
         0x5F,                        // a run of 32
         0x60, 0x00,                  // a run of 33
     };
@@ -54,10 +55,10 @@ AR_TEST(test_texture_decodes_the_three_differences) {
     int w = 0, h = 0;
     uint8_t *pixels = ar_texture_decode_qoi(d.bytes, d.length, &w, &h);
     AR_EXPECT(pixels != NULL);
-    AR_EQUAL_INT(pixel(pixels, 1), 0x65636464);
-    AR_EQUAL_INT(pixel(pixels, 2), 0x69646364);
-    AR_EQUAL_INT(pixel(pixels, 3), 0x6c636666);
-    AR_EQUAL_INT(pixel(pixels, 68), 0x6c636666);
+    AR_EQUAL_INT(pixel(pixels, 1), 0x63656264);
+    AR_EQUAL_INT(pixel(pixels, 2), 0x575e6964);
+    AR_EQUAL_INT(pixel(pixels, 3), 0x4a6d5c56);
+    AR_EQUAL_INT(pixel(pixels, 68), 0x4a6d5c56);
     free(pixels);
 }
 

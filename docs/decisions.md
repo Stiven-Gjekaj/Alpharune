@@ -62,6 +62,32 @@ Each entry gives the reason. The owner made these choices on 2026-10-18.
   `build.sh`, the iPhoneOS 9.3 SDK with `fix-sdk.sh`, clang for
   `armv7-apple-ios6.0`, ARM mode only, ARC for Objective-C.
 
+## Textures and memory
+
+- **The texture pages stay RGBA8888 in the memory of the GPU.** Reason:
+  the pixel art must stay exact, and the memory is enough. Measured on the
+  4S with iOS 6.1.3 (2026-10-18): Chapter 1 uses 114 MB of textures and at
+  most 155 MB of resident memory in all of its rooms. The app did not stop
+  in a sweep through 133 rooms. RGBA4444 or PVRTC would change the colors.
+- **The decoded pages stay in `/var/mobile/Media/Alpharune/cache/`.**
+  Reason: the A5 decodes a page of 2048 x 2048 in 220 to 600 ms, and reads
+  it from the cache in about 100 ms. Chapter 1 decodes in 2.7 s, and loads
+  from the cache in 0.7 s. The cache takes 113 MB of space. Each file name
+  has a hash of the page bytes, so a new copy of the game makes new files.
+- **The game files are found in any case.** Reason: GameMaker made the game
+  on Windows, and the game names six music files in upper case. The file
+  system of the phone sees case.
+
+## The speed on the A5
+
+- Measured with a debug build, 150 frames in each room (2026-10-18): each
+  room of Chapter 1 that a warp reaches runs in less than 16 ms for each
+  frame. The slowest is `room_town_mid`, at 15.3 ms. The game runs at 30
+  frames each second, so a frame can take 33 ms.
+- 13 small rooms of the town send Kris back to `room_town_mid` when a warp
+  puts Kris there at this point of the story, so they have no number of
+  their own.
+
 ## Releases
 
 - Each big part of the roadmap is one minor release. A release gets a git

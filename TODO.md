@@ -74,15 +74,16 @@ calls 354 functions that are not its own scripts. The chapter select,
 - Read and write the saves in the format of the PC game.
 - Open Chapter 1 from the chapter select.
 
-## 0.7: Chapter 1 plays to the end
+## 0.7: Chapter 1 plays to the end (done, 2026-10-18)
 
 - Play the light world: the school, the town, and the house.
 - Play the dark world: Castle Town, the Field, the Great Board, and the
   Forest.
 - Play Card Castle and the end of the chapter.
-- Play the battles: the FIGHT, ACT, ITEM, SPARE, and DEFEND commands, the
-  TP, and the bullet box.
-- Play the shops, the menus, and the secret boss.
+- Play the battles: the FIGHT, ACT, MAGIC, and DEFEND commands, the TP, and
+  the bullet box.
+- Check the replay to the end of Chapter 1 before each release
+  (`scripts/replay.sh`).
 
 ## 0.8: the speed and the memory
 
@@ -96,6 +97,8 @@ calls 354 functions that are not its own scripts. The chapter select,
 
 ## 1.0.0
 
+- Play the shops, the menus, the ITEM and SPARE commands, and the secret
+  boss.
 - Play Chapter 1 from the start to the end on the phone, and fix each
   difference with the Mac copy. Compare the VM with the GameMaker runtime
   of the Mac copy where a difference is not clear.

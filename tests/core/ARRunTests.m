@@ -197,6 +197,25 @@ AR_TEST(test_run_gives_new_instances_ids_after_the_ids_of_the_rooms) {
     end_game(&g);
 }
 
+AR_TEST(test_run_makes_all_instances_of_a_room_before_their_create_events) {
+    Game g = {ar_asm_new()};
+    add_capture(g.a);
+    int reader = ar_asm_object(g.a, "obj_reader", -1);
+    int marker = ar_asm_object(g.a, "obj_marker", -1);
+    // The create event of the first instance reads obj_marker.x, as the
+    // player of Deltarune reads the marker of its entrance.
+    char source[128];
+    snprintf(source, sizeof(source), "push.v %d.x\npop.v.v -5.seen\n", marker);
+    ar_asm_event(g.a, reader, AR_EV_CREATE, 0, ar_asm_code(g.a, "gml_Object_obj_reader_Create_0", 0, source));
+    ar_asm_room(g.a, "room_a", 320, 240, -1);
+    ar_asm_instance(g.a, reader, 0, 0, -1);
+    ar_asm_instance(g.a, marker, 77, 0, -1);
+    AR_EXPECT(start_game(&g));
+    ar_run_start(g.run);
+    AR_EQUAL_INT(global_of(vm_of(&g), "seen"), 77);
+    end_game(&g);
+}
+
 AR_TEST(test_run_finds_a_collision_with_place_meeting) {
     Game g = {ar_asm_new()};
     add_capture(g.a);

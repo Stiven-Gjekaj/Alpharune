@@ -566,9 +566,12 @@ static void enter_room(ARRun *run, int index, int first) {
         if (!inst->destroyed) inst->layer = ar_run_layer_for_depth(run, inst->depth);
     }
 
-    // The instances of the room: the create event, then the creation code
-    // of each, in the order of the room.
+    // The instances of the room. GameMaker makes all of them first, so that
+    // a create event finds an instance that comes later in the room. Then
+    // each gets its create event and its creation code, in the order of the
+    // room.
     ARInstance **made = malloc(sizeof(ARInstance *) * (size_t)(room->instance_count + 1));
+    const ARRoomInstance **source = malloc(sizeof(ARRoomInstance *) * (size_t)(room->instance_count + 1));
     int made_count = 0;
     for (int i = 0; i < room->instance_count; i++) {
         const ARRoomInstance *ri = &room->instances[i];
@@ -588,14 +591,21 @@ static void enter_room(ARRun *run, int index, int first) {
         ARLayerState *l = layer >= 0 ? ar_run_layer(run, layer) : NULL;
         inst->layer = layer;
         if (l) inst->depth = l->depth;
+        source[made_count] = ri;
+        made[made_count++] = inst;
+    }
+    for (int i = 0; i < made_count; i++) {
+        ARInstance *inst = made[i];
+        const ARRoomInstance *ri = source[i];
+        if (inst->destroyed) continue;
         if (ri->pre_create_code >= 0) ar_vm_run(run->vm, ri->pre_create_code, inst->vars, inst->vars, 0, NULL);
         ar_run_event(run, inst, AR_EV_CREATE, 0);
         inst->created = 1;
         if (ri->creation_code >= 0 && !inst->destroyed) {
             ar_vm_run(run->vm, ri->creation_code, inst->vars, inst->vars, 0, NULL);
         }
-        made[made_count++] = inst;
     }
+    free(source);
     if (first) {
         count = ar_vm_instance_count(run->vm);
         for (int i = 0; i < count; i++) {

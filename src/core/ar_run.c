@@ -1022,7 +1022,8 @@ int ar_run_frame(ARRun *run) {
         if (inst->active && !inst->destroyed) animate(run, inst);
     }
     ar_vm_remove_destroyed(run->vm);
-    if (run->next_room >= 0 && !run->game_end) change_room(run);
+    // GameMaker draws the room of this frame, and changes the room after
+    // the draw. The new room then steps before it draws.
     for (int v = 0; v < AR_MAX_VIEWS; v++) {
         if (run->views[v].visible) ar_run_update_camera(run, run->views[v].camera);
     }

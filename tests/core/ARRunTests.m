@@ -171,6 +171,32 @@ AR_TEST(test_run_changes_the_room_and_keeps_a_persistent_instance) {
     end_game(&g);
 }
 
+AR_TEST(test_run_steps_a_new_room_before_it_draws_it) {
+    Game g = {ar_asm_new()};
+    add_capture(g.a);
+    int go = ar_asm_object(g.a, "obj_go", -1);
+    int probe = ar_asm_object(g.a, "obj_probe", -1);
+    // obj_go goes to room 1. In room 1, obj_probe adds 1 in its step and 2
+    // in its draw, so the order of the first frame there is 12.
+    ar_asm_event(g.a, go, AR_EV_STEP, 0,
+                 ar_asm_code(g.a, "gml_Object_obj_go_Step_0", 0, "pushi 1\npop.v.i -1.room\n"));
+    ar_asm_event(g.a, probe, AR_EV_CREATE, 0,
+                 ar_asm_code(g.a, "gml_Object_obj_probe_Create_0", 0, "pushi 0\npop.v.i -5.order\n"));
+    ar_asm_event(g.a, probe, AR_EV_STEP, 0, order_code(g.a, "gml_Object_obj_probe_Step_0", 1));
+    ar_asm_event(g.a, probe, AR_EV_DRAW, 0, order_code(g.a, "gml_Object_obj_probe_Draw_0", 2));
+    ar_asm_room(g.a, "room_a", 320, 240, -1);
+    ar_asm_instance(g.a, go, 0, 0, -1);
+    ar_asm_room(g.a, "room_b", 320, 240, -1);
+    ar_asm_instance(g.a, probe, 0, 0, -1);
+    AR_EXPECT(start_game(&g));
+    ar_run_start(g.run);
+    ar_run_frame(g.run);
+    AR_EQUAL(@(ar_run_room_name(g.run)), @"room_b");
+    ar_run_frame(g.run);
+    AR_EQUAL_INT(global_of(vm_of(&g), "order"), 12);
+    end_game(&g);
+}
+
 AR_TEST(test_run_gives_new_instances_ids_after_the_ids_of_the_rooms) {
     Game g = {ar_asm_new()};
     add_capture(g.a);

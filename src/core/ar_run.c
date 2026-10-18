@@ -1189,6 +1189,18 @@ void ar_run_debug(ARRun *run, const char *command) {
         }
         return;
     }
+    double index, number;
+    int fields = sscanf(command, "set %63s %lf %lf", word, &index, &number);
+    if (fields >= 2) {
+        // Sets a global number, or an item of a global array: "set hp 1 900".
+        ARValue *v = ar_vars_slot(&ar_vm_global(run->vm)->vars, ar_vm_slot(run->vm, word));
+        if (fields == 2) {
+            *v = ar_real(index);
+        } else if (v->type == AR_ARRAY && v->a) {
+            ar_array_set(v->a, (int32_t)index, ar_real(number));
+        }
+        return;
+    }
     if (sscanf(command, "get %63s", word) == 1) {
         // A global variable, with up to two levels of arrays.
         ARValue *v = ar_vars_find(&ar_vm_global(run->vm)->vars, ar_vm_slot(run->vm, word));

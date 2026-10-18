@@ -3,6 +3,7 @@
 #import <QuartzCore/QuartzCore.h>
 #import "ARGameViewController.h"
 #import "ARAudioOutput.h"
+#include <mach/mach.h>
 #include <sys/stat.h>
 #include "ar_gl.h"
 #include "ar_host.h"
@@ -204,8 +205,15 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     total += ms;
     if (ms > worst) worst = ms;
     if (++frames == 150) {
-        fprintf(stderr, "speed: %.1f ms each frame, %.1f ms at most, room %s, %ld MB of textures\n", total / frames,
-                worst, ar_run_room_name(ar_host_run(_host)), ar_gl_texture_bytes() >> 20);
+        // The resident memory of the app, from the kernel.
+        struct task_basic_info info;
+        mach_msg_type_number_t count = TASK_BASIC_INFO_COUNT;
+        unsigned long resident = 0;
+        if (task_info(mach_task_self(), TASK_BASIC_INFO, (task_info_t)&info, &count) == KERN_SUCCESS) {
+            resident = (unsigned long)(info.resident_size >> 20);
+        }
+        fprintf(stderr, "speed: %.1f ms each frame, %.1f ms at most, room %s, %ld MB of textures, %lu MB resident\n",
+                total / frames, worst, ar_run_room_name(ar_host_run(_host)), ar_gl_texture_bytes() >> 20, resident);
         total = worst = 0;
         frames = 0;
     }

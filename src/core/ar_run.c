@@ -552,7 +552,7 @@ static void enter_room(ARRun *run, int index, int first) {
     run->room_w = room->width;
     run->room_h = room->height;
     run->room_speed = room->speed > 0 ? room->speed : d->fps;
-    run->room_persistent = room->persistent;
+    run->room_persistent = run->room_kept[index];
     run->background_color = room->color & 0xFFFFFF;
     run->show_background_color = (room->flags & 2) != 0;
     clear_room_state(run);
@@ -566,6 +566,21 @@ static void enter_room(ARRun *run, int index, int first) {
         if (!inst->destroyed) inst->layer = ar_run_layer_for_depth(run, inst->depth);
     }
 
+    // A persistent room that ran before gets its kept instances back, with
+    // no create events and no creation code.
+    int restored = run->room_saves[index].saved;
+    if (restored) {
+        for (int i = 0; i < run->room_saves[index].count; i++) {
+            ARInstance *inst = run->room_saves[index].items[i];
+            ar_vm_instance_attach(run->vm, inst);
+            if (!ar_run_layer(run, inst->layer)) inst->layer = ar_run_layer_for_depth(run, inst->depth);
+        }
+        free(run->room_saves[index].items);
+        run->room_saves[index].items = NULL;
+        run->room_saves[index].count = 0;
+        run->room_saves[index].saved = 0;
+    }
+
     // The instances of the room. GameMaker makes all of them first, so that
     // a create event finds an instance that comes later in the room. Then
     // each gets its create event and its creation code, in the order of the
@@ -573,7 +588,7 @@ static void enter_room(ARRun *run, int index, int first) {
     ARInstance **made = malloc(sizeof(ARInstance *) * (size_t)(room->instance_count + 1));
     const ARRoomInstance **source = malloc(sizeof(ARRoomInstance *) * (size_t)(room->instance_count + 1));
     int made_count = 0;
-    for (int i = 0; i < room->instance_count; i++) {
+    for (int i = 0; i < room->instance_count && !restored; i++) {
         const ARRoomInstance *ri = &room->instances[i];
         if (ri->object < 0 || ri->object >= d->object_count) continue;
         if (ar_vm_find_instance(run->vm, ri->id)) continue;
@@ -613,7 +628,7 @@ static void enter_room(ARRun *run, int index, int first) {
             ar_run_event(run, inst, AR_EV_OTHER, AR_OTHER_GAME_START);
         }
     }
-    if (room->creation_code >= 0) ar_vm_run(run->vm, room->creation_code, NULL, NULL, 0, NULL);
+    if (room->creation_code >= 0 && !restored) ar_vm_run(run->vm, room->creation_code, NULL, NULL, 0, NULL);
     count = ar_vm_instance_count(run->vm);
     for (int i = 0; i < count; i++) {
         ARInstance *inst = ar_vm_instance_at(run->vm, i);
@@ -640,6 +655,25 @@ static void change_room(ARRun *run) {
     for (int i = 0; i < count; i++) {
         ARInstance *inst = ar_vm_instance_at(run->vm, i);
         ar_run_event(run, inst, AR_EV_OTHER, AR_OTHER_ROOM_END);
+    }
+    ar_vm_remove_destroyed(run->vm);
+    if (run->room >= 0 && run->room_kept[run->room]) {
+        // A persistent room keeps its instances for the next visit.
+        int old = run->room;
+        count = ar_vm_instance_count(run->vm);
+        free(run->room_saves[old].items);
+        run->room_saves[old].items = malloc(sizeof(ARInstance *) * (size_t)(count + 1));
+        run->room_saves[old].count = 0;
+        run->room_saves[old].saved = 1;
+        for (int i = 0; i < ar_vm_instance_count(run->vm);) {
+            ARInstance *inst = ar_vm_instance_at(run->vm, i);
+            if (inst->persistent) {
+                i++;
+                continue;
+            }
+            ar_vm_instance_detach(run->vm, inst);
+            run->room_saves[old].items[run->room_saves[old].count++] = inst;
+        }
     }
     count = ar_vm_instance_count(run->vm);
     for (int i = 0; i < count; i++) {
@@ -950,6 +984,9 @@ static void mark_more(ARVM *vm, void *context) {
             ar_mark_value(ds->entries[k].key);
             ar_mark_value(ds->entries[k].value);
         }
+    }
+    for (int i = 0; i < run->data->room_count; i++) {
+        for (int k = 0; k < run->room_saves[i].count; k++) ar_mark_obj(&run->room_saves[i].items[k]->vars->h);
     }
     ar_audio_mark(run);
 }
@@ -1551,7 +1588,9 @@ static ARValue get_room_persistent(ARVM *vm, ARInstance *s, int i) {
 static void set_room_persistent(ARVM *vm, ARInstance *s, int i, ARValue v) {
     (void)s;
     (void)i;
-    ar_run_of(vm)->room_persistent = ar_truthy(v);
+    ARRun *run = ar_run_of(vm);
+    run->room_persistent = ar_truthy(v);
+    if (run->room >= 0) run->room_kept[run->room] = (uint8_t)run->room_persistent;
 }
 
 static ARValue get_fps(ARVM *vm, ARInstance *s, int i) {
@@ -1777,6 +1816,9 @@ ARRun *ar_run_new(const ARData *data, const ARRunConfig *config, char *error, si
     run->room = -1;
     run->next_room = -1;
     run->room_speed = data->fps;
+    run->room_kept = calloc((size_t)data->room_count + 1, 1);
+    run->room_saves = calloc((size_t)data->room_count + 1, sizeof(*run->room_saves));
+    for (int i = 0; i < data->room_count; i++) run->room_kept[i] = (uint8_t)(data->rooms[i].persistent != 0);
     run->window_w = data->window_w > 0 ? data->window_w : 640;
     run->window_h = data->window_h > 0 ? data->window_h : 480;
     run->draw_color = 0xFFFFFF;
@@ -1797,6 +1839,12 @@ void ar_run_free(ARRun *run) {
     ar_audio_free(run);
     ar_draw_free(run);
     clear_room_state(run);
+    for (int i = 0; i < run->data->room_count; i++) {
+        for (int k = 0; k < run->room_saves[i].count; k++) ar_vm_instance_free(run->vm, run->room_saves[i].items[k]);
+        free(run->room_saves[i].items);
+    }
+    free(run->room_saves);
+    free(run->room_kept);
     free(run->layers);
     free(run->elements);
     for (int i = 0; i < run->ds_count; i++) {

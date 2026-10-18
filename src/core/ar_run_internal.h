@@ -178,6 +178,14 @@ struct ARRun {
     double room_speed;
     int room_w, room_h;
     int room_persistent;
+    // For each room: 1 when the room keeps its instances, and the instances
+    // that it keeps while another room runs.
+    uint8_t *room_kept;
+    struct {
+        ARInstance **items;
+        int count;
+        int saved;
+    } *room_saves;
     uint32_t background_color;
     int show_background_color;
 

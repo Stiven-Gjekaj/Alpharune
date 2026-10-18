@@ -217,6 +217,44 @@ AR_TEST(test_run_draws_the_newer_of_two_instances_of_one_depth_first) {
     end_game(&g);
 }
 
+AR_TEST(test_run_keeps_the_instances_of_a_persistent_room) {
+    Game g = {ar_asm_new()};
+    add_capture(g.a);
+    int keep = ar_asm_object(g.a, "obj_keep", -1);
+    int back = ar_asm_object(g.a, "obj_back", -1);
+    // obj_keep counts its create events. In its first step it makes room 0
+    // persistent and goes to room 1, and obj_back comes back to room 0.
+    int init = ar_asm_code(g.a, "gml_GlobalScript_init", 0,
+                           "call t_capture_vm 0\npopz.v\npushi 0\npop.v.i -5.creates\npushi 0\npop.v.i -5.steps\n");
+    ar_asm_global_script(g.a, init);
+    ar_asm_event(g.a, keep, AR_EV_CREATE, 0,
+                 ar_asm_code(g.a, "gml_Object_obj_keep_Create_0", 0,
+                             "pushglb.v -5.creates\npushi 1\nadd.i.v\npop.v.v -5.creates\n"));
+    ar_asm_event(g.a, keep, AR_EV_STEP, 0,
+                 ar_asm_code(g.a, "gml_Object_obj_keep_Step_0", 0,
+                             "pushglb.v -5.steps\npushi 1\nadd.i.v\npop.v.v -5.steps\n"
+                             "pushglb.v -5.steps\npushi 1\ncmp.i.v eq\nbf end\n"
+                             "pushi 1\npop.v.i -1.room_persistent\npushi 1\npop.v.i -1.room\nend:\n"));
+    ar_asm_event(g.a, back, AR_EV_STEP, 0,
+                 ar_asm_code(g.a, "gml_Object_obj_back_Step_0", 0, "pushi 0\npop.v.i -1.room\n"));
+    ar_asm_room(g.a, "room_a", 320, 240, -1);
+    int kept = ar_asm_instance(g.a, keep, 0, 0, -1);
+    ar_asm_room(g.a, "room_b", 320, 240, -1);
+    ar_asm_instance(g.a, back, 0, 0, -1);
+    AR_EXPECT(start_game(&g));
+    ar_run_start(g.run);
+    ar_run_frame(g.run);
+    AR_EQUAL(@(ar_run_room_name(g.run)), @"room_b");
+    ar_run_frame(g.run);
+    AR_EQUAL(@(ar_run_room_name(g.run)), @"room_a");
+    ar_run_frame(g.run);
+    ARVM *vm = vm_of(&g);
+    AR_EQUAL_INT(global_of(vm, "creates"), 1);
+    AR_EQUAL_INT(global_of(vm, "steps"), 2);
+    AR_EXPECT(ar_vm_find_instance(vm, kept) != NULL);
+    end_game(&g);
+}
+
 AR_TEST(test_run_gives_new_instances_ids_after_the_ids_of_the_rooms) {
     Game g = {ar_asm_new()};
     add_capture(g.a);

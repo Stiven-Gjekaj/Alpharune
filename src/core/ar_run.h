@@ -71,6 +71,10 @@ double ar_run_speed(ARRun *run);
 // The target with the image of the window, and its size.
 int ar_run_window(ARRun *run, int *width, int *height);
 
+// The target of a surface of the game (0 is the application surface), and
+// its size. Returns 0 when there is no such surface.
+int ar_run_surface(ARRun *run, int surface, int *width, int *height);
+
 // A key goes down or up.
 void ar_run_key(ARRun *run, int key, int down);
 

@@ -1042,6 +1042,13 @@ int ar_run_window(ARRun *run, int *width, int *height) {
     return run->window_handle;
 }
 
+int ar_run_surface(ARRun *run, int surface, int *width, int *height) {
+    if (surface < 0 || surface >= run->surface_count || !run->surfaces[surface].used) return 0;
+    *width = run->surfaces[surface].width;
+    *height = run->surfaces[surface].height;
+    return run->surfaces[surface].handle;
+}
+
 long ar_run_frame_count(ARRun *run) {
     return run->frame;
 }

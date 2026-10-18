@@ -12,6 +12,8 @@
 //   --hold F:NAME:N   Hold the key NAME from frame F for N frames.
 //   --room NAME       Go to a room after the first frame.
 //   --data FILE       The data file in GAME_DIR (default game.ios).
+//   --rooms           Writes "room F NAME" at each change of the room, as a
+//                     replay of a debug build of the app on the phone does.
 //   --debug F:COMMAND Runs a debug command of ar_run_debug at frame F.
 //   --script FILE     Reads more keys from a file. Each line is
 //                     "FRAME KEY [FRAMES]" or "FRAME debug COMMAND".
@@ -78,6 +80,8 @@ int main(int argc, char **argv) {
         long frames = 300, shot = 30;
         const char *out = "build/frames", *save = NULL, *room = NULL, *data_name = "game.ios", *serve = NULL;
         ARKeys *keys = ar_keys_new();
+        __block int rooms = 0;
+        char *room_now = calloc(1, 128);
         for (int i = 2; i < argc; i++) {
             if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) frames = atol(argv[++i]);
             else if (strcmp(argv[i], "--shot") == 0 && i + 1 < argc) shot = atol(argv[++i]);
@@ -86,6 +90,7 @@ int main(int argc, char **argv) {
             else if (strcmp(argv[i], "--room") == 0 && i + 1 < argc) room = argv[++i];
             else if (strcmp(argv[i], "--data") == 0 && i + 1 < argc) data_name = argv[++i];
             else if (strcmp(argv[i], "--serve") == 0 && i + 1 < argc) serve = argv[++i];
+            else if (strcmp(argv[i], "--rooms") == 0) rooms = 1;
             else if (strcmp(argv[i], "--debug") == 0 && i + 1 < argc) {
                 char *colon = strchr(argv[i + 1], ':');
                 if (colon) ar_keys_add_debug(keys, atol(argv[i + 1]), colon + 1);
@@ -186,6 +191,11 @@ int main(int argc, char **argv) {
                 fprintf(stderr, "frame %ld: data in %s\n", f + 1, dir_now);
             }
             f++;
+            const char *name = ar_run_room_name(ar_host_run(host));
+            if (rooms && strcmp(name, room_now) != 0) {
+                snprintf(room_now, 128, "%s", name);
+                fprintf(stderr, "room %ld %s\n", f, name);
+            }
             return 1;
         };
         void (^save_surface)(const char *, int) = ^(const char *name, int surface) {

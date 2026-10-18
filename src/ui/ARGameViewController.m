@@ -164,6 +164,21 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     memcpy(_keys, keys, sizeof(keys));
 }
 
+// Draws the window of the game and the pads on the screen.
+- (void)present {
+    int w, h;
+    int window = ar_run_window(ar_host_run(_host), &w, &h);
+    glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
+    glViewport(0, 0, _width, _height);
+    glClearColor(0, 0, 0, 1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ar_gl_present(window, _pads.game_x, _pads.game_y, _pads.game_w, _pads.game_h, _width, _height);
+    int n = ar_pads_draw(&_pads, _keys, _padVertices);
+    ar_gl_screen_triangles(_padVertices, n, _width, _height);
+    glBindRenderbuffer(GL_RENDERBUFFER, _colorbuffer);
+    [_context presentRenderbuffer:GL_RENDERBUFFER];
+}
+
 - (void)frame:(CADisplayLink *)link {
     [EAGLContext setCurrentContext:_context];
     [self updateKeys];
@@ -195,17 +210,7 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
         [alert show];
     }
     [self setRate];
-    int w, h;
-    int window = ar_run_window(ar_host_run(_host), &w, &h);
-    glBindFramebuffer(GL_FRAMEBUFFER, _framebuffer);
-    glViewport(0, 0, _width, _height);
-    glClearColor(0, 0, 0, 1);
-    glClear(GL_COLOR_BUFFER_BIT);
-    ar_gl_present(window, _pads.game_x, _pads.game_y, _pads.game_w, _pads.game_h, _width, _height);
-    int n = ar_pads_draw(&_pads, _keys, _padVertices);
-    ar_gl_screen_triangles(_padVertices, n, _width, _height);
-    glBindRenderbuffer(GL_RENDERBUFFER, _colorbuffer);
-    [_context presentRenderbuffer:GL_RENDERBUFFER];
+    [self present];
 #ifdef AR_DEBUG
     // The time of each frame, each 150 frames.
     static double total, worst;

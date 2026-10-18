@@ -29,9 +29,10 @@ _A GML bytecode VM in C, OpenGL ES 2.0, and your own copy of the game_
 ---
 
 > [!NOTE]
-> **Version 0.7.0 is out.** Chapter 1 plays from the start to the end: the
-> school, Castle Town, the Field, the Great Board, the Forest, Card Castle,
-> and the King. Version 0.8 makes it faster and smaller on the phone.
+> **Version 0.8.0 is out.** Chapter 1 plays from the start to the end, and
+> each room runs in less than 16 ms for each frame on the iPhone 4S. A later
+> start loads the art from a cache. Version 1.0 plays all of Chapter 1 on
+> the phone.
 > [CHANGELOG.md](CHANGELOG.md) lists the changes of each release.
 > [docs/decisions.md](docs/decisions.md) holds each decision and its reason.
 
@@ -99,7 +100,7 @@ it. Z confirms, X cancels and runs, and C opens the menu.
 - The sounds and the music, decoded on the phone
 - A notice for the chapters that come in a later version
 
-Version 0.7.0 was checked on an iPhone 4S with iOS 6.1.3, and with a
+Version 0.8.0 was checked on an iPhone 4S with iOS 6.1.3, and with a
 replay of all of Chapter 1 on the Mac.
 
 ## You need a copy of DELTARUNE
@@ -121,7 +122,9 @@ to Toby Fox. Alpharune reads them from the files of the PC game.
 | `chapter1_mac/` | 23 MB |
 | `mus/` | 286 MB |
 
-The saves and the settings go in `/var/mobile/Media/Alpharune/save/`.
+The saves and the settings go in `/var/mobile/Media/Alpharune/save/`. The
+app keeps the decoded art in `/var/mobile/Media/Alpharune/cache/` (113 MB),
+so that a later start is short. You can delete this directory.
 
 ## Install
 

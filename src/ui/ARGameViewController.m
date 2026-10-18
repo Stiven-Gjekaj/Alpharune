@@ -5,6 +5,7 @@
 #import "ARAudioOutput.h"
 #include <mach/mach.h>
 #include <sys/stat.h>
+#include "ar_audio.h"
 #include "ar_gl.h"
 #include "ar_host.h"
 #include "ar_keys.h"
@@ -136,6 +137,14 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
         [self showMessage:text];
         return;
     }
+#ifdef AR_DEBUG
+    // A replay runs faster than the sound, so it plays no sound: each sound
+    // then moves by the time of a frame, as on the Mac, and ends at the same
+    // frame.
+    if (_replay) {
+        ar_audio_set_output(0);
+    } else
+#endif
     if (!ar_audio_output_start()) fprintf(stderr, "audio: the output does not start\n");
     _link = [CADisplayLink displayLinkWithTarget:self selector:@selector(frame:)];
     [self setRate];

@@ -182,14 +182,17 @@ const uint8_t *ar_form_finish(ARForm *f, size_t *size) {
     return f->b;
 }
 
-// The GEN8 chunk of bytecode 17, with a window of 640 x 480, two rooms in
-// the room order, and 30 frames each second.
 void ar_form_gen8(ARForm *f) {
+    const uint32_t order[2] = {1, 0};
+    ar_form_gen8_order(f, 100000, order, 2);
+}
+
+void ar_form_gen8_order(ARForm *f, uint32_t last_object, const uint32_t *order, int count) {
     ar_form_chunk(f, "GEN8");
     ar_form_u32(f, 1 | 17 << 8);  // debug off, bytecode 17
     ar_form_str(f, "GAME");      // file name
     ar_form_str(f, "Default");   // config
-    ar_form_u32(f, 100000);      // last object
+    ar_form_u32(f, last_object);
     ar_form_u32(f, 10000000);    // last tile
     ar_form_u32(f, 0);           // game id
     for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // guid
@@ -206,9 +209,8 @@ void ar_form_gen8(ARForm *f) {
     for (int i = 0; i < 4; i++) ar_form_u32(f, 0);  // targets, classes
     ar_form_u32(f, 0);           // steam
     ar_form_u32(f, 0);           // debugger port
-    ar_form_u32(f, 2);           // room order
-    ar_form_u32(f, 1);
-    ar_form_u32(f, 0);
+    ar_form_u32(f, (uint32_t)count);  // room order
+    for (int i = 0; i < count; i++) ar_form_u32(f, order[i]);
     for (int i = 0; i < 10; i++) ar_form_u32(f, 0);  // five random numbers
     ar_form_f32(f, 30);
 }

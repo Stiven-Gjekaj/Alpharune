@@ -40,7 +40,26 @@ typedef struct {
     int inst;
 } Var;
 
+typedef struct {
+    char name[64];
+    int w, h, creation_code;
+    int objects[64], xs[64], ys[64], ids[64], codes[64];
+    int count;
+} Room;
+
+typedef struct {
+    char name[64];
+    int w, h, ox, oy;
+} Sprite;
+
 struct ARAsm {
+    Room rooms[8];
+    int room_count;
+    int next_id;
+    Sprite sprites[16];
+    int sprite_count;
+    int object_sprite[32];
+    int object_persistent[32];
     Code *codes[64];
     int code_count;
     Var vars[MAX_ITEMS];
@@ -74,8 +93,47 @@ const char *ar_asm_error(ARAsm *a) {
     return a->error;
 }
 
+int ar_asm_room(ARAsm *a, const char *name, int w, int h, int creation_code) {
+    Room *r = &a->rooms[a->room_count];
+    snprintf(r->name, sizeof(r->name), "%s", name);
+    r->w = w;
+    r->h = h;
+    r->creation_code = creation_code;
+    return a->room_count++;
+}
+
+int ar_asm_instance(ARAsm *a, int object, int x, int y, int creation_code) {
+    Room *r = &a->rooms[a->room_count - 1];
+    if (a->next_id == 0) a->next_id = 100000;
+    int id = a->next_id++;
+    r->objects[r->count] = object;
+    r->xs[r->count] = x;
+    r->ys[r->count] = y;
+    r->ids[r->count] = id;
+    r->codes[r->count] = creation_code;
+    r->count++;
+    return id;
+}
+
+void ar_asm_object_sprite(ARAsm *a, int object, int sprite, int persistent) {
+    a->object_sprite[object] = sprite;
+    a->object_persistent[object] = persistent;
+}
+
+int ar_asm_sprite(ARAsm *a, const char *name, int w, int h, int origin_x, int origin_y) {
+    Sprite *s = &a->sprites[a->sprite_count];
+    snprintf(s->name, sizeof(s->name), "%s", name);
+    s->w = w;
+    s->h = h;
+    s->ox = origin_x;
+    s->oy = origin_y;
+    return a->sprite_count++;
+}
+
 int ar_asm_object(ARAsm *a, const char *name, int parent) {
     int i = a->object_count++;
+    a->object_sprite[i] = -1;
+    a->object_persistent[i] = 0;
     snprintf(a->objects[i], sizeof(a->objects[i]), "%s", name);
     a->parents[i] = parent;
     for (int t = 0; t < 15; t++) {
@@ -399,7 +457,13 @@ int ar_asm_child(ARAsm *a, const char *name, int arguments, const char *label) {
 const uint8_t *ar_asm_finish(ARAsm *a, size_t *size) {
     ARForm *f = ar_form_new();
     a->form = f;
-    ar_form_gen8(f);
+    if (a->room_count > 0) {
+        uint32_t order[8];
+        for (int i = 0; i < a->room_count; i++) order[i] = (uint32_t)i;
+        ar_form_gen8_order(f, a->next_id > 0 ? (uint32_t)a->next_id - 1 : 100000, order, a->room_count);
+    } else {
+        ar_form_gen8(f);
+    }
     // The strings of push.s get their index now.
     for (int i = 0; i < a->code_count; i++) {
         Code *c = a->codes[i];
@@ -418,7 +482,8 @@ const uint8_t *ar_asm_finish(ARAsm *a, size_t *size) {
             snprintf(label, sizeof(label), "obj%d", i);
             ar_form_label(f, label);
             ar_form_str(f, a->objects[i]);
-            int32_t head[20] = {-1, 1, 0, 0, 0, 0, a->parents[i] < 0 ? -100 : a->parents[i], -1, 0, 0,
+            int32_t head[20] = {a->object_sprite[i], 1, 0, 0, 0, a->object_persistent[i],
+                                a->parents[i] < 0 ? -100 : a->parents[i], -1, 0, 0,
                                 1, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             for (int k = 0; k < 20; k++) ar_form_u32(f, (uint32_t)head[k]);
             ar_form_u32(f, 15);
@@ -450,6 +515,111 @@ const uint8_t *ar_asm_finish(ARAsm *a, size_t *size) {
                                            0xFFFFFFFF, 0, 0, 0};
                     for (int w = 0; w < 14; w++) ar_form_u32(f, action[w]);
                 }
+            }
+        }
+    }
+
+    if (a->sprite_count > 0) {
+        // One texture item for each sprite, on a page with no image.
+        ar_form_chunk(f, "TPAG");
+        char label[48];
+        ar_form_u32(f, (uint32_t)a->sprite_count);
+        for (int i = 0; i < a->sprite_count; i++) {
+            snprintf(label, sizeof(label), "tpag%d", i);
+            ar_form_ptr(f, label);
+        }
+        for (int i = 0; i < a->sprite_count; i++) {
+            snprintf(label, sizeof(label), "tpag%d", i);
+            ar_form_label(f, label);
+            Sprite *sp = &a->sprites[i];
+            uint16_t fields[11] = {0, 0, (uint16_t)sp->w, (uint16_t)sp->h, 0, 0, (uint16_t)sp->w, (uint16_t)sp->h,
+                                   (uint16_t)sp->w, (uint16_t)sp->h, 0};
+            for (int k = 0; k < 11; k++) ar_form_u16(f, fields[k]);
+        }
+        ar_form_chunk(f, "SPRT");
+        ar_form_u32(f, (uint32_t)a->sprite_count);
+        for (int i = 0; i < a->sprite_count; i++) {
+            snprintf(label, sizeof(label), "sprt%d", i);
+            ar_form_ptr(f, label);
+        }
+        for (int i = 0; i < a->sprite_count; i++) {
+            Sprite *sp = &a->sprites[i];
+            snprintf(label, sizeof(label), "sprt%d", i);
+            ar_form_label(f, label);
+            ar_form_str(f, sp->name);
+            int32_t head[13] = {sp->w, sp->h, 0, sp->w - 1, sp->h - 1, 0, 0, 0, 0, 0, 0, sp->ox, sp->oy};
+            for (int k = 0; k < 13; k++) ar_form_u32(f, (uint32_t)head[k]);
+            ar_form_u32(f, 0xFFFFFFFF);
+            ar_form_u32(f, 3);
+            ar_form_u32(f, 0);
+            ar_form_f32(f, 1);
+            ar_form_u32(f, 1);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, 1);
+            snprintf(label, sizeof(label), "tpag%d", i);
+            ar_form_ptr(f, label);
+            ar_form_u32(f, 0);  // no masks
+        }
+    }
+    if (a->room_count > 0) {
+        ar_form_chunk(f, "ROOM");
+        char label[48];
+        ar_form_u32(f, (uint32_t)a->room_count);
+        for (int i = 0; i < a->room_count; i++) {
+            snprintf(label, sizeof(label), "room%d", i);
+            ar_form_ptr(f, label);
+        }
+        for (int i = 0; i < a->room_count; i++) {
+            Room *r = &a->rooms[i];
+            snprintf(label, sizeof(label), "room%d", i);
+            ar_form_label(f, label);
+            ar_form_str(f, r->name);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, (uint32_t)r->w);
+            ar_form_u32(f, (uint32_t)r->h);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, (uint32_t)r->creation_code);
+            ar_form_u32(f, 0x30000);
+            snprintf(label, sizeof(label), "room%d_empty", i);
+            ar_form_ptr(f, label);  // backgrounds
+            ar_form_ptr(f, label);  // views
+            snprintf(label, sizeof(label), "room%d_inst", i);
+            ar_form_ptr(f, label);
+            snprintf(label, sizeof(label), "room%d_empty", i);
+            ar_form_ptr(f, label);  // tiles
+            for (int k = 0; k < 6; k++) ar_form_u32(f, 0);
+            ar_form_f32(f, 0);
+            ar_form_f32(f, 0.1f);
+            ar_form_ptr(f, label);  // layers
+            ar_form_ptr(f, label);  // sequences
+            ar_form_label(f, label);
+            ar_form_u32(f, 0);
+            snprintf(label, sizeof(label), "room%d_inst", i);
+            ar_form_label(f, label);
+            ar_form_u32(f, (uint32_t)r->count);
+            for (int k = 0; k < r->count; k++) {
+                snprintf(label, sizeof(label), "room%d_i%d", i, k);
+                ar_form_ptr(f, label);
+            }
+            for (int k = 0; k < r->count; k++) {
+                snprintf(label, sizeof(label), "room%d_i%d", i, k);
+                ar_form_label(f, label);
+                ar_form_u32(f, (uint32_t)r->xs[k]);
+                ar_form_u32(f, (uint32_t)r->ys[k]);
+                ar_form_u32(f, (uint32_t)r->objects[k]);
+                ar_form_u32(f, (uint32_t)r->ids[k]);
+                ar_form_u32(f, (uint32_t)r->codes[k]);
+                ar_form_f32(f, 1);
+                ar_form_f32(f, 1);
+                ar_form_f32(f, 1);
+                ar_form_u32(f, 0);
+                ar_form_u32(f, 0xFFFFFFFF);
+                ar_form_f32(f, 0);
+                ar_form_u32(f, 0xFFFFFFFF);
             }
         }
     }

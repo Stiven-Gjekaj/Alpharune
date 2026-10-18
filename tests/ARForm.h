@@ -33,6 +33,8 @@ int ar_form_string_index(ARForm *form, const char *text);
 // Adds a GEN8 chunk of bytecode 17, with a window of 640 x 480, the room
 // order 1, 0, and 30 frames each second.
 void ar_form_gen8(ARForm *form);
+// The same GEN8 chunk with a last instance id and a room order of its own.
+void ar_form_gen8_order(ARForm *form, uint32_t last_object, const uint32_t *order, int count);
 // Marks the current offset with a label.
 void ar_form_label(ARForm *form, const char *label);
 // The current file offset.

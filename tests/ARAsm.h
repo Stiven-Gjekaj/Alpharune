@@ -29,6 +29,16 @@ void ar_asm_free(ARAsm *a);
 int ar_asm_object(ARAsm *a, const char *name, int parent);
 // Sets the code of an event of an object.
 void ar_asm_event(ARAsm *a, int object, int type, int subtype, int code);
+// Adds a room of w x h pixels. Returns its index. The first room is the
+// first in the room order.
+int ar_asm_room(ARAsm *a, const char *name, int w, int h, int creation_code);
+// Adds an instance of an object to the last room. id 0 picks the next id.
+// creation_code is -1 for none. Returns the id.
+int ar_asm_instance(ARAsm *a, int object, int x, int y, int creation_code);
+// Sets the sprite and the persistence of an object.
+void ar_asm_object_sprite(ARAsm *a, int object, int sprite, int persistent);
+// Adds a sprite of w x h pixels with a full box mask and one frame.
+int ar_asm_sprite(ARAsm *a, const char *name, int w, int h, int origin_x, int origin_y);
 // Adds a code entry. A name of "gml_Script_x" also adds the script
 // "gml_Script_x". Returns the index of the code, or -1 for an error in the
 // source (ar_asm_error tells it).

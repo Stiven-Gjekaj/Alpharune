@@ -1103,6 +1103,9 @@ void ar_run_debug(ARRun *run, const char *command) {
                 fprintf(stderr, "    element %d type %d sprite %s at %.0f,%.0f%s\n", e->id, e->type,
                         e->sprite >= 0 && e->sprite < run->data->sprite_count ? run->data->sprites[e->sprite].name : "-",
                         e->x, e->y, e->visible ? "" : " hidden");
+                if (e->type == AR_ELEMENT_TILE)
+                    fprintf(stderr, "      part %d,%d %dx%d scale %.2f,%.2f\n", e->source_x, e->source_y, e->width,
+                            e->height, e->xscale, e->yscale);
             }
         }
         for (int v = 0; v < AR_MAX_VIEWS; v++) {

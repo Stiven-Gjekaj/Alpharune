@@ -1128,6 +1128,27 @@ void ar_run_debug(ARRun *run, const char *command) {
         return;
     }
     int id;
+    double range;
+    if (sscanf(command, "near %d %lf", &id, &range) == 2) {
+        // The instances with a box within range of the box of an instance.
+        ARInstance *me = ar_vm_find_instance(run->vm, id);
+        double l, t, r, b;
+        if (!me || !ar_run_bbox(run, me, &l, &t, &r, &b)) {
+            fprintf(stderr, "  no box for %d\n", id);
+            return;
+        }
+        fprintf(stderr, "  %d box %.1f,%.1f to %.1f,%.1f\n", id, l, t, r, b);
+        int count = ar_vm_instance_count(run->vm);
+        for (int i = 0; i < count; i++) {
+            ARInstance *inst = ar_vm_instance_at(run->vm, i);
+            double il, it, ir, ib;
+            if (inst == me || inst->destroyed || !ar_run_bbox(run, inst, &il, &it, &ir, &ib)) continue;
+            if (il > r + range || ir < l - range || it > b + range || ib < t - range) continue;
+            fprintf(stderr, "  %d %s box %.1f,%.1f to %.1f,%.1f%s\n", inst->id, run->data->objects[inst->object].name, il,
+                    it, ir, ib, inst->solid ? " solid" : "");
+        }
+        return;
+    }
     if (sscanf(command, "vars %d", &id) == 1) {
         // The variables of an instance, or of the global struct for -5.
         ARStruct *st = NULL;

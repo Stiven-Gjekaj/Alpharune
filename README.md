@@ -29,9 +29,9 @@ _A GML bytecode VM in C, OpenGL ES 2.0, and your own copy of the game_
 ---
 
 > [!NOTE]
-> **Version 0.6.0 is out.** Chapter 1 plays from the start to the Field:
-> the school, the Dark World, Castle Town, the first battles, and the first
-> puzzles. Version 0.7 plays Chapter 1 to the end.
+> **Version 0.7.0 is out.** Chapter 1 plays from the start to the end: the
+> school, Castle Town, the Field, the Great Board, the Forest, Card Castle,
+> and the King. Version 0.8 makes it faster and smaller on the phone.
 > [CHANGELOG.md](CHANGELOG.md) lists the changes of each release.
 > [docs/decisions.md](docs/decisions.md) holds each decision and its reason.
 
@@ -91,8 +91,7 @@ it. Z confirms, X cancels and runs, and C opens the menu.
 
 ## Features
 
-- The chapter select of DELTARUNE, and Chapter 1 from the start to the
-  Field
+- The chapter select of DELTARUNE, and Chapter 1 from the start to the end
 - The scenes, the text, the portraits, the battles, the bullet box, the TP,
   and the save points of the game
 - The saves in the format of the PC game, in
@@ -100,7 +99,8 @@ it. Z confirms, X cancels and runs, and C opens the menu.
 - The sounds and the music, decoded on the phone
 - A notice for the chapters that come in a later version
 
-Version 0.6.0 was checked on an iPhone 4S with iOS 6.1.3.
+Version 0.7.0 was checked on an iPhone 4S with iOS 6.1.3, and with a
+replay of all of Chapter 1 on the Mac.
 
 ## You need a copy of DELTARUNE
 
@@ -159,6 +159,7 @@ You need a Mac with Xcode and the iOS 9.3 SDK of Theos.
 | `scripts/mac.sh` | `build/alpharune-mac`, the game on the Mac with no window |
 | `scripts/test.sh` | The tests, on the Mac |
 | `scripts/test.sh --phone` | The tests, on the phone |
+| `scripts/replay.sh` | Replays all of Chapter 1 on the Mac, and checks that it reaches the end |
 | `scripts/install.sh` | Builds the app, copies it and the game files to the phone, and opens it |
 | `scripts/install.sh --debug` | The same, with a log and the debug commands |
 | `scripts/tap.sh` | Sends keys and debug commands to a debug build |

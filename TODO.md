@@ -99,8 +99,6 @@ calls 354 functions that are not its own scripts. The chapter select,
 - Play Chapter 1 from the start to the end on the phone, and fix each
   difference with the Mac copy. Compare the VM with the GameMaker runtime
   of the Mac copy where a difference is not clear.
-- Record videos of the game with a screen recorder from Cydia. A person
-  must start it with a tap.
 - Publish the release on GitHub with the .deb, and add it to the Cydia
   repository.
 

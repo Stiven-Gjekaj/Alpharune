@@ -1126,6 +1126,36 @@ void ar_run_debug(ARRun *run, const char *command) {
         }
         return;
     }
+    int id;
+    if (sscanf(command, "vars %d", &id) == 1) {
+        // The variables of an instance, or of the global struct for -5.
+        ARStruct *st = NULL;
+        if (id == -5) {
+            st = ar_vm_global(run->vm);
+        } else {
+            ARInstance *inst = ar_vm_find_instance(run->vm, id);
+            if (inst) st = inst->vars;
+        }
+        if (!st) {
+            fprintf(stderr, "  no instance %d\n", id);
+            return;
+        }
+        for (int32_t i = 0; i < st->vars.capacity; i++) {
+            int32_t key = st->vars.keys[i];
+            if (key < 0) continue;
+            ARValue v = st->vars.values[i];
+            const char *name = ar_vm_slot_name(run->vm, key);
+            if (v.type == AR_ARRAY) {
+                fprintf(stderr, "  %s = array of %d\n", name, v.a ? v.a->length : 0);
+            } else if (v.type == AR_STRUCT || v.type == AR_METHOD) {
+                fprintf(stderr, "  %s = %s\n", name, v.type == AR_STRUCT ? "struct" : "method");
+            } else {
+                ARStr *text = ar_to_str(ar_vm_heap(run->vm), v);
+                fprintf(stderr, "  %s = %.60s\n", name, text ? text->text : "?");
+            }
+        }
+        return;
+    }
     if (sscanf(command, "room %63s", word) == 1) {
         int r = ar_data_find_room(run->data, word);
         if (r < 0) r = atoi(word);

@@ -994,6 +994,7 @@ int ar_run_frame(ARRun *run) {
     if (run->next_room >= 0 && !run->game_end) change_room(run);
 
     if (ar_heap_new_bytes(ar_vm_heap(run->vm)) > 4u * 1024 * 1024) ar_vm_collect(run->vm, mark_more, run);
+    ar_audio_advance(run, 1.0 / (run->room_speed > 0 ? run->room_speed : 30));
     run->frame++;
     return !run->game_end && !run->change && !run->restart;
 }

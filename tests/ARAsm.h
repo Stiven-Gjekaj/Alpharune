@@ -39,6 +39,8 @@ int ar_asm_instance(ARAsm *a, int object, int x, int y, int creation_code);
 void ar_asm_object_sprite(ARAsm *a, int object, int sprite, int persistent);
 // Adds a sprite of w x h pixels with a full box mask and one frame.
 int ar_asm_sprite(ARAsm *a, const char *name, int w, int h, int origin_x, int origin_y);
+// Adds a sound with the bytes of a WAV in the AUDO chunk. Returns its index.
+int ar_asm_sound(ARAsm *a, const char *name, const void *wav, size_t size);
 // Adds a code entry. A name of "gml_Script_x" also adds the script
 // "gml_Script_x". Returns the index of the code, or -1 for an error in the
 // source (ar_asm_error tells it).

@@ -52,7 +52,15 @@ typedef struct {
     int w, h, ox, oy;
 } Sprite;
 
+typedef struct {
+    char name[64];
+    uint8_t *bytes;
+    size_t size;
+} SoundData;
+
 struct ARAsm {
+    SoundData sounds[8];
+    int sound_count;
     Room rooms[8];
     int room_count;
     int next_id;
@@ -80,7 +88,17 @@ ARAsm *ar_asm_new(void) {
     return calloc(1, sizeof(ARAsm));
 }
 
+int ar_asm_sound(ARAsm *a, const char *name, const void *wav, size_t size) {
+    SoundData *d = &a->sounds[a->sound_count];
+    snprintf(d->name, sizeof(d->name), "%s", name);
+    d->bytes = malloc(size);
+    memcpy(d->bytes, wav, size);
+    d->size = size;
+    return a->sound_count++;
+}
+
 void ar_asm_free(ARAsm *a) {
+    for (int i = 0; i < a->sound_count; i++) free(a->sounds[i].bytes);
     for (int i = 0; i < a->code_count; i++) {
         free(a->codes[i]->words);
         free(a->codes[i]);
@@ -560,6 +578,42 @@ const uint8_t *ar_asm_finish(ARAsm *a, size_t *size) {
             snprintf(label, sizeof(label), "tpag%d", i);
             ar_form_ptr(f, label);
             ar_form_u32(f, 0);  // no masks
+        }
+    }
+    if (a->sound_count > 0) {
+        char label[48];
+        ar_form_chunk(f, "SOND");
+        ar_form_u32(f, (uint32_t)a->sound_count);
+        for (int i = 0; i < a->sound_count; i++) {
+            snprintf(label, sizeof(label), "sond%d", i);
+            ar_form_ptr(f, label);
+        }
+        for (int i = 0; i < a->sound_count; i++) {
+            snprintf(label, sizeof(label), "sond%d", i);
+            ar_form_label(f, label);
+            ar_form_str(f, a->sounds[i].name);
+            ar_form_u32(f, 101);  // regular, embedded
+            ar_form_str(f, ".wav");
+            ar_form_str(f, a->sounds[i].name);
+            ar_form_u32(f, 0);
+            ar_form_f32(f, 1);
+            ar_form_f32(f, 1);
+            ar_form_u32(f, 0);
+            ar_form_u32(f, (uint32_t)i);
+        }
+        ar_form_chunk(f, "AUDO");
+        ar_form_u32(f, (uint32_t)a->sound_count);
+        for (int i = 0; i < a->sound_count; i++) {
+            snprintf(label, sizeof(label), "audo%d", i);
+            ar_form_ptr(f, label);
+        }
+        for (int i = 0; i < a->sound_count; i++) {
+            // The samples start at an even offset.
+            if (ar_form_offset(f) & 3) ar_form_bytes(f, "\0\0\0", 4 - (ar_form_offset(f) & 3));
+            snprintf(label, sizeof(label), "audo%d", i);
+            ar_form_label(f, label);
+            ar_form_u32(f, (uint32_t)a->sounds[i].size);
+            ar_form_bytes(f, a->sounds[i].bytes, a->sounds[i].size);
         }
     }
     if (a->room_count > 0) {

@@ -2,6 +2,7 @@
 
 #import "ARTest.h"
 #include "ARAsm.h"
+#include "ar_audio.h"
 #include "ar_run.h"
 #include "ar_vm.h"
 
@@ -367,4 +368,85 @@ AR_TEST(test_lib_round_uses_the_nearest_even_number) {
     AR_EQUAL_INT(call(vm, "round", 1, &a).r, 0);
     AR_EQUAL_INT(call(vm, "round", 1, &b).r, 2);
     AR_EQUAL_INT(call(vm, "round", 1, &c).r, -2);
+}
+
+// A WAV of 16 bits, mono, 44100 frames each second, with frames of the
+// value 1000.
+static NSData *make_wav(int frames) {
+    NSMutableData *d = [NSMutableData data];
+    uint32_t data_size = (uint32_t)frames * 2;
+    uint32_t riff = 36 + data_size;
+    uint8_t head[44] = {'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' ', 16, 0, 0, 0,
+                        1, 0, 1, 0, 0x44, 0xAC, 0, 0, 0x88, 0x58, 1, 0, 2, 0, 16, 0, 'd', 'a', 't', 'a'};
+    memcpy(head + 4, &riff, 4);
+    [d appendBytes:head length:40];
+    [d appendBytes:&data_size length:4];
+    for (int i = 0; i < frames; i++) {
+        int16_t v = 1000;
+        [d appendBytes:&v length:2];
+    }
+    return d;
+}
+
+static Game gSound;
+
+static ARVM *sound_game(void) {
+    if (!gSound.run) {
+        gSound.a = ar_asm_new();
+        add_capture(gSound.a);
+        NSData *wav = make_wav(44100 / 2);  // half a second
+        ar_asm_sound(gSound.a, "snd_test", wav.bytes, wav.length);
+        ar_asm_room(gSound.a, "room_a", 320, 240, -1);
+        start_game(&gSound);
+        ar_run_start(gSound.run);
+    }
+    return vm_of(&gSound);
+}
+
+AR_TEST(test_audio_plays_a_sound_and_mixes_its_samples) {
+    ARVM *vm = sound_game();
+    ar_audio_set_output(1);
+    ARValue args[3] = {ar_real(0), ar_real(10), ar_bool(0)};
+    ARValue voice = call(vm, "audio_play_sound", 3, args);
+    AR_EXPECT(voice.r >= 200000);
+    AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 1);
+    int16_t out[64];
+    ar_audio_render(out, 32);
+    AR_EQUAL_INT(out[0], 1000);
+    AR_EQUAL_INT(out[1], 1000);
+    // Half the gain gives half the value.
+    ARValue gain[3] = {voice, ar_real(0.5), ar_real(0)};
+    call(vm, "audio_sound_gain", 3, gain);
+    ar_audio_render(out, 32);
+    AR_EQUAL_INT(out[0], 500);
+    call(vm, "audio_stop_sound", 1, &voice);
+    AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 0);
+    ar_audio_set_output(0);
+}
+
+AR_TEST(test_audio_ends_a_sound_with_no_output_after_its_time) {
+    ARVM *vm = sound_game();
+    ar_audio_set_output(0);
+    ARValue args[3] = {ar_real(0), ar_real(10), ar_bool(0)};
+    ARValue voice = call(vm, "audio_play_sound", 3, args);
+    // Half a second is 15 frames at 30 frames each second.
+    for (int i = 0; i < 14; i++) ar_run_frame(gSound.run);
+    AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 1);
+    ar_run_frame(gSound.run);
+    ar_run_frame(gSound.run);
+    AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 0);
+    ARValue sound = ar_real(0);
+    AR_EQUAL_INT(call(vm, "audio_sound_length", 1, &sound).r * 100, 50);
+}
+
+AR_TEST(test_audio_loops_a_sound) {
+    ARVM *vm = sound_game();
+    ar_audio_set_output(0);
+    ARValue args[3] = {ar_real(0), ar_real(10), ar_bool(1)};
+    ARValue voice = call(vm, "audio_play_sound", 3, args);
+    for (int i = 0; i < 40; i++) ar_run_frame(gSound.run);
+    AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 1);
+    ARValue sound = ar_real(0);
+    call(vm, "audio_stop_sound", 1, &sound);
+    AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 0);
 }

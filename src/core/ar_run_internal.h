@@ -332,6 +332,8 @@ int ar_draw_pop_target(ARRun *run);
 void ar_audio_init(ARRun *run);
 void ar_audio_free(ARRun *run);
 void ar_audio_mark(ARRun *run);
+// Moves the sounds by the time of a frame when the host has no output.
+void ar_audio_advance(ARRun *run, double seconds);
 
 // The builtin tables of each part of the library.
 void ar_lib_register_all(void);

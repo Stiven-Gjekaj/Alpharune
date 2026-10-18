@@ -24,6 +24,12 @@ Each entry gives the reason. The owner made these choices on 2026-10-18.
   The owner copies the game files from a bought copy to
   `/var/mobile/Media/Alpharune/`. Reason: the .deb then holds no file of
   Deltarune, as in Balatro4S.
+- **The reference is the macOS release of Deltarune, version
+  2026.07.31.** Each chapter is a file `chapterN_mac/game.ios` in
+  `DELTARUNE.app/Contents/Resources/`. The file of Chapter 1 has bytecode
+  version 17 and 1680 code entries, so it runs in a VM and is not compiled
+  with YYC. Reason: Deltarune has no release for Android or iOS, so an APK
+  is not a copy of the game from Toby Fox.
 - **The tests do not read the files of Deltarune.** A test builds the
   state that it needs.
 

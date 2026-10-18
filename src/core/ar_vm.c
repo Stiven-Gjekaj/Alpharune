@@ -135,6 +135,7 @@ typedef struct Frame {
     Env *envs;
     int env_count, env_capacity;
     int32_t pc;
+    const int32_t *pc_now;  // The program counter of the running code.
     struct Frame *caller;
 } Frame;
 
@@ -267,7 +268,20 @@ static void fault(ARVM *vm, const char *format, ...) {
     va_start(args, format);
     vsnprintf(text, sizeof(text), format, args);
     va_end(args);
-    fprintf(stderr, "gml: %s (in %s)\n", text, ar_vm_current_code(vm));
+    // The byte offset of the instruction in its blob, as gmdump shows it.
+    long offset = -1;
+    Frame *f = vm->frame;
+    if (f && f->code >= 0 && f->pc_now) {
+        const Blob *blob = &vm->blobs[vm->code_blob[f->code]];
+        int32_t now = *f->pc_now - 1;
+        for (uint32_t w = 0; w < blob->length / 4; w++) {
+            if (blob->at[w] == now) {
+                offset = (long)w * 4;
+                break;
+            }
+        }
+    }
+    fprintf(stderr, "gml: %s (in %s at %lx)\n", text, ar_vm_current_code(vm), offset);
 }
 
 const char *ar_vm_error(const ARVM *vm) {
@@ -1296,6 +1310,7 @@ static ARValue call_function(ARVM *vm, int32_t function, ARStruct *self, ARStruc
         Frame frame;
         memset(&frame, 0, sizeof(frame));
         frame.code = vm->frame ? vm->frame->code : -1;
+        frame.pc_now = vm->frame ? vm->frame->pc_now : NULL;
         frame.self = self;
         frame.other = other;
         frame.args = args;
@@ -1468,6 +1483,7 @@ static ARValue run_code(ARVM *vm, int32_t code, ARStruct *self, ARStruct *other,
     const Blob *blob = &vm->blobs[vm->code_blob[code]];
     const Insn *insns = blob->insns;
     int32_t pc = vm->code_start[code];
+    f.pc_now = &pc;
     int32_t base = vm->sp;
     int underflow = 0;
     ARValue result = ar_undefined();

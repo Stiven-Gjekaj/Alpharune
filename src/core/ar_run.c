@@ -1171,7 +1171,17 @@ void ar_run_debug(ARRun *run, const char *command) {
             ARValue v = st->vars.values[i];
             const char *name = ar_vm_slot_name(run->vm, key);
             if (v.type == AR_ARRAY) {
-                fprintf(stderr, "  %s = array of %d\n", name, v.a ? v.a->length : 0);
+                int length = v.a ? v.a->length : 0;
+                fprintf(stderr, "  %s = array of %d", name, length);
+                // The first items of a short array.
+                for (int k = 0; k < length && k < 8; k++) {
+                    ARValue item = v.a->items[k];
+                    ARStr *text = item.type == AR_ARRAY || item.type == AR_STRUCT || item.type == AR_METHOD
+                                      ? NULL
+                                      : ar_to_str(ar_vm_heap(run->vm), item);
+                    fprintf(stderr, "%s%.20s", k ? ", " : ": ", text ? text->text : "?");
+                }
+                fprintf(stderr, "\n");
             } else if (v.type == AR_STRUCT || v.type == AR_METHOD) {
                 fprintf(stderr, "  %s = %s\n", name, v.type == AR_STRUCT ? "struct" : "method");
             } else {

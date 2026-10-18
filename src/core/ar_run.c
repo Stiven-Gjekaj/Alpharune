@@ -1879,6 +1879,7 @@ ARRun *ar_run_new(const ARData *data, const ARRunConfig *config, char *error, si
     copy_dir(run->game_dir, sizeof(run->game_dir), config->game_dir);
     copy_dir(run->save_dir, sizeof(run->save_dir), config->save_dir ? config->save_dir : config->game_dir);
     if (config->music_dir) copy_dir(run->music_dir, sizeof(run->music_dir), config->music_dir);
+    if (config->cache_dir) copy_dir(run->cache_dir, sizeof(run->cache_dir), config->cache_dir);
     run->parameters = config->parameters;
     run->parameter_count = config->parameter_count;
     run->vm = ar_vm_new(data);

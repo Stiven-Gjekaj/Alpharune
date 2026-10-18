@@ -13,6 +13,8 @@ typedef struct {
     // The directory with game.ios, the chapter directories, and mus/.
     const char *base_dir;
     const char *save_dir;
+    // The directory for the cache of the decoded texture pages, or NULL.
+    const char *cache_dir;
     const char *data_name;  // "game.ios" when NULL.
     ARGfx gfx;
     ARAudioHost audio;

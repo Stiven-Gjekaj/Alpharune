@@ -67,7 +67,7 @@ int ar_draw_page(ARRun *run, int page) {
     const ARTexPage *p = &run->data->pages[page];
     if (!p->bytes || !run->gfx.texture_new) return 0;
     int w, h;
-    uint8_t *pixels = ar_texture_decode(p->bytes, p->size, &w, &h);
+    uint8_t *pixels = ar_texture_cached(run->cache_dir[0] ? run->cache_dir : NULL, p->bytes, p->size, &w, &h);
     if (!pixels) {
         ar_vm_log(run->vm, "texture page %d does not decode", page);
         return 0;

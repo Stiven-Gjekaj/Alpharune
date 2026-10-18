@@ -42,3 +42,20 @@ AR_TEST(test_host_opens_the_select_again_for_a_chapter_with_no_data) {
     AR_EXPECT(ar_host_notice(host) == NULL);
     ar_host_close(host);
 }
+
+AR_TEST(test_host_makes_the_cache_directory) {
+    NSString *dir = ARTestTemporaryDirectory();
+    write_select(dir);
+    NSString *cache = [dir stringByAppendingPathComponent:@"cache"];
+    ARHostConfig config;
+    memset(&config, 0, sizeof(config));
+    config.base_dir = dir.fileSystemRepresentation;
+    config.save_dir = [dir stringByAppendingPathComponent:@"save"].fileSystemRepresentation;
+    config.cache_dir = cache.fileSystemRepresentation;
+    char error[256];
+    ARHost *host = ar_host_open(&config, error, sizeof(error));
+    AR_EXPECT(host != NULL);
+    BOOL isDir = NO;
+    AR_EXPECT([[NSFileManager defaultManager] fileExistsAtPath:cache isDirectory:&isDir] && isDir);
+    if (host) ar_host_close(host);
+}

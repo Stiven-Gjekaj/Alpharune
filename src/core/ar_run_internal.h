@@ -161,6 +161,8 @@ struct ARRun {
     ARAudioHost audio_host;
     char game_dir[1024];
     char save_dir[1024];
+    // The cache of the decoded texture pages; empty for no cache.
+    char cache_dir[1024];
     char music_dir[1024];
     const char *const *parameters;
     int parameter_count;

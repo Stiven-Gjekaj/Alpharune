@@ -27,6 +27,9 @@ typedef struct {
     const char *save_dir;
     // The directory of the shared music ("mus/"), when it is not game_dir.
     const char *music_dir;
+    // The directory for the cache of the decoded texture pages, or NULL for
+    // no cache.
+    const char *cache_dir;
     // The command line of the game, as parameter_string gives it: the path
     // of the program, then the parameters. NULL for none.
     const char *const *parameters;

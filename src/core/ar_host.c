@@ -15,6 +15,7 @@ struct ARHost {
     char base[1024];
     char dir[1024];
     char save[1024];
+    char cache[1024];
     char music[1024];
     char data_name[64];
     char *params[MAX_PARAMS];
@@ -65,6 +66,7 @@ static int load(ARHost *h) {
     rc.game_dir = h->dir;
     rc.save_dir = h->save;
     rc.music_dir = h->music;
+    rc.cache_dir = h->cache[0] ? h->cache : NULL;
     rc.parameters = (const char *const *)h->params;
     rc.parameter_count = h->param_count;
     rc.gfx = h->config.gfx;
@@ -81,6 +83,10 @@ ARHost *ar_host_open(const ARHostConfig *config, char *error, size_t size) {
     snprintf(h->base, sizeof(h->base), "%s", config->base_dir);
     snprintf(h->dir, sizeof(h->dir), "%s", config->base_dir);
     snprintf(h->save, sizeof(h->save), "%s", config->save_dir);
+    if (config->cache_dir) {
+        snprintf(h->cache, sizeof(h->cache), "%s", config->cache_dir);
+        mkdir(h->cache, 0755);
+    }
     snprintf(h->music, sizeof(h->music), "%s/mus", config->base_dir);
     snprintf(h->data_name, sizeof(h->data_name), "%s", config->data_name ? config->data_name : "game.ios");
     mkdir(h->save, 0755);

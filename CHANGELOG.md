@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.8.0 (2026-10-18)
+
+This release measures the speed and the memory on the iPhone 4S, and
+makes the later starts short.
+
+- Each room of Chapter 1 that a warp reaches runs in less than 16 ms for
+  each frame on the A5. The slowest is the middle of the town, at 15.3 ms.
+  A frame can take 33 ms.
+- Chapter 1 uses 114 MB of textures and at most 155 MB of resident memory.
+  The textures stay RGBA8888, so that the pixel art stays exact.
+- The app keeps the decoded texture pages in
+  `/var/mobile/Media/Alpharune/cache/` (113 MB). The first start decodes
+  them; a later start loads them about four times faster. On the 4S, the
+  first frame comes after 0.5 s instead of 1.7 s, and the stops when a
+  room loads its art are shorter.
+- Six music files play on the phone: the game names them in upper case,
+  and the runtime now finds a file in any case. One of them is the music of
+  the legend.
+- A debug build logs the time of the first frame and each frame that takes
+  longer than 100 ms.
+
 ## 0.7.0 (2026-10-18)
 
 Chapter 1 plays to the end. A replay on the Mac goes from the chapter

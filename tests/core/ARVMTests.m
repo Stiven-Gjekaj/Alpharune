@@ -486,6 +486,57 @@ AR_TEST(test_vm_writes_through_the_stacktop_marker) {
     unlink_program(&p);
 }
 
+// Gives the instance an array "items" of three numbers: 10, 20, 30.
+static ARInstance *instance_with_items(Program *p) {
+    ARInstance *target = ar_vm_instance_new(p->vm, -1, 0);
+    ARArray *arr = ar_array_new(ar_vm_heap(p->vm), 3);
+    for (int i = 0; i < 3; i++) arr->items[i] = ar_real(10 * (i + 1));
+    *ar_vars_slot(&target->vars->vars, ar_vm_slot(p->vm, "items")) = ar_arrayv(arr);
+    return target;
+}
+
+AR_TEST(test_vm_reads_an_array_item_of_an_instance_through_the_stacktop_marker) {
+    Program p = {ar_asm_new()};
+    // return other_inst.items[2] + 1: "pushi -9" is the instance type, and
+    // the instance is under it.
+    int code = ar_asm_code(p.a, "gml_Script_test", 1,
+                           "push.v -15.argument0\n"
+                           "pushi -9\n"
+                           "pushi 2\n"
+                           "push.v 0.items array\n"
+                           "pushi 1\n"
+                           "add.i.v\n"
+                           "ret.v\n");
+    AR_EXPECT(code >= 0);
+    AR_EXPECT(link_program(&p));
+    ARInstance *target = instance_with_items(&p);
+    ARValue arg = ar_real(target->id);
+    ARValue r = ar_vm_run(p.vm, code, NULL, NULL, 1, &arg);
+    AR_EQUAL_INT(r.r, 31);
+    unlink_program(&p);
+}
+
+AR_TEST(test_vm_writes_an_array_item_of_an_instance_through_the_stacktop_marker) {
+    Program p = {ar_asm_new()};
+    // other_inst.items[1] = 5
+    int code = ar_asm_code(p.a, "gml_Script_test", 1,
+                           "pushi 5\n"
+                           "conv.i.v\n"
+                           "push.v -15.argument0\n"
+                           "pushi -9\n"
+                           "pushi 1\n"
+                           "pop.v.v 0.items array\n"
+                           "exit.i\n");
+    AR_EXPECT(code >= 0);
+    AR_EXPECT(link_program(&p));
+    ARInstance *target = instance_with_items(&p);
+    ARValue arg = ar_real(target->id);
+    ar_vm_run(p.vm, code, NULL, NULL, 1, &arg);
+    ARValue *items = ar_vars_find(&target->vars->vars, ar_vm_slot(p.vm, "items"));
+    AR_EQUAL_INT(ar_array_get(items->a, 1).r, 5);
+    unlink_program(&p);
+}
+
 AR_TEST(test_vm_moves_the_instance_over_the_arguments_with_a_dup_swap) {
     Program p = {ar_asm_new()};
     // inst.f(a, b): the compiler pushes inst, then b and a, then moves inst

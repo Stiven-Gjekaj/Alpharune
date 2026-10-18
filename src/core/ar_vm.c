@@ -1470,6 +1470,13 @@ __attribute__((constructor)) static void register_internal(void) {
         vm->stack[vm->sp++] = (v);                        \
     } while (0)
 #define POP() (vm->sp > base ? vm->stack[--vm->sp] : (underflow = 1, ar_undefined()))
+// The instance type of an array access into t. For "inst.a[i]" the compiler
+// pushes the instance, then -9 as the instance type, then the index.
+#define POP_TARGET(t)                                                                       \
+    do {                                                                                     \
+        t = POP();                                                                           \
+        if (t.type != AR_STRUCT && ar_is_number(t) && ar_to_int(t) == AR_STACKTOP) t = POP(); \
+    } while (0)
 #define TOP() (vm->stack[vm->sp - 1])
 
 static void free_frame(Frame *f) {
@@ -1525,11 +1532,13 @@ static ARValue run_code(ARVM *vm, int32_t code, ARStruct *self, ARStruct *other,
             int kind = in->sub;
             if (kind == VT_ARRAY || kind == VT_PUSHAF) {
                 int index = ar_to_int(POP());
-                ARValue t = POP();
+                ARValue t;
+                POP_TARGET(t);
                 PUSH(read_var(vm, &f, t, in->arg, index, 1), 16);
             } else if (kind == VT_POPAF) {
                 int index = ar_to_int(POP());
-                ARValue t = POP();
+                ARValue t;
+                POP_TARGET(t);
                 PUSH(inner_array(vm, &f, t, in->arg, index), 16);
             } else {
                 ARValue t;
@@ -1551,7 +1560,7 @@ static ARValue run_code(ARVM *vm, int32_t code, ARStruct *self, ARStruct *other,
                 // With an int as the first type, the value is on the top.
                 if (in->t1 == T_INT) value = POP();
                 int index = ar_to_int(POP());
-                t = POP();
+                POP_TARGET(t);
                 if (in->t1 != T_INT) value = POP();
                 write_var(vm, &f, t, in->arg, index, 1, value);
             } else if (kind == VT_STACKTOP || in->inst == AR_STACKTOP) {

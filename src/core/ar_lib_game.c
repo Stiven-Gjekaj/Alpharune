@@ -1437,10 +1437,6 @@ FN(f_surface_resize) {
     int w = INT(1, 1), h = INT(2, 1);
     ARSurface *sf = &run->surfaces[s];
     if (sf->width == w && sf->height == h) return ar_undefined();
-    if (s == 0) {
-        // The application surface keeps the size of the window here.
-        return ar_undefined();
-    }
     ar_draw_flush(run);
     if (run->gfx.texture_free && sf->handle) run->gfx.texture_free(run->gfx.context, sf->handle);
     sf->width = w;

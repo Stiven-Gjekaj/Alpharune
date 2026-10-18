@@ -494,6 +494,32 @@ static void setup_views(ARRun *run, const ARRoom *room) {
     }
 }
 
+// With views, the application surface takes the size of the box of the
+// visible ports, as in GameMaker. The draw of the window stretches it.
+static void size_app_surface(ARRun *run) {
+    int w = run->window_w, h = run->window_h;
+    if (run->views_enabled) {
+        int right = 0, bottom = 0;
+        for (int i = 0; i < AR_MAX_VIEWS; i++) {
+            ARView *v = &run->views[i];
+            if (!v->visible) continue;
+            if (v->xport + v->wport > right) right = v->xport + v->wport;
+            if (v->yport + v->hport > bottom) bottom = v->yport + v->hport;
+        }
+        if (right > 0 && bottom > 0) {
+            w = right;
+            h = bottom;
+        }
+    }
+    ARSurface *app = &run->surfaces[0];
+    if (app->width == w && app->height == h) return;
+    ar_draw_flush(run);
+    if (run->gfx.texture_free && app->handle) run->gfx.texture_free(run->gfx.context, app->handle);
+    app->width = w;
+    app->height = h;
+    app->handle = run->gfx.target_new ? run->gfx.target_new(run->gfx.context, w, h) : 0;
+}
+
 void ar_run_update_camera(ARRun *run, int camera) {
     if (camera < 0 || camera >= AR_MAX_CAMERAS) return;
     ARCamera *c = &run->cameras[camera];
@@ -532,6 +558,7 @@ static void enter_room(ARRun *run, int index, int first) {
     clear_room_state(run);
     load_room_layers(run, room);
     setup_views(run, room);
+    size_app_surface(run);
     // The persistent instances stay on a layer of their depth.
     int count = ar_vm_instance_count(run->vm);
     for (int i = 0; i < count; i++) {

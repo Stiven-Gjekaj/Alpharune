@@ -1,0 +1,11 @@
+Package: io.github.stivengjekaj.alpharune
+Name: Alpharune
+Version: @VERSION@
+Architecture: iphoneos-arm
+Description: A demake of DELTARUNE for iOS 6. It needs the files of your own copy of DELTARUNE.
+Maintainer: Stiven Gjekaj <stivenagostingjekaj@gmail.com>
+Author: Stiven Gjekaj <stivenagostingjekaj@gmail.com>
+Section: Games
+Depends: firmware (>= 6.0)
+Homepage: https://github.com/Stiven-Gjekaj/Alpharune
+Icon: file:///Applications/Alpharune.app/Icon@2x.png

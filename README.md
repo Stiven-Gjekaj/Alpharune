@@ -29,10 +29,9 @@ _A GML bytecode VM in C, OpenGL ES 2.0, and your own copy of the game_
 ---
 
 > [!NOTE]
-> **Version 0.8.0 is out.** Chapter 1 plays from the start to the end, and
-> each room runs in less than 16 ms for each frame on the iPhone 4S. A later
-> start loads the art from a cache. Version 1.0 plays all of Chapter 1 on
-> the phone.
+> **Version 1.0.0 is out.** Chapter 1 of DELTARUNE plays from the start to
+> the end on the iPhone 4S. A replay of all of the chapter on the phone
+> goes through the same rooms at the same frames as on the Mac.
 > [CHANGELOG.md](CHANGELOG.md) lists the changes of each release.
 > [docs/decisions.md](docs/decisions.md) holds each decision and its reason.
 
@@ -100,8 +99,8 @@ it. Z confirms, X cancels and runs, and C opens the menu.
 - The sounds and the music, decoded on the phone
 - A notice for the chapters that come in a later version
 
-Version 0.8.0 was checked on an iPhone 4S with iOS 6.1.3, and with a
-replay of all of Chapter 1 on the Mac.
+Version 1.0.0 was checked on an iPhone 4S with iOS 6.1.3, with a replay
+of all of Chapter 1 on the phone and on the Mac.
 
 ## You need a copy of DELTARUNE
 

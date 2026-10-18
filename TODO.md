@@ -95,7 +95,7 @@ calls 354 functions that are not its own scripts. The chapter select,
   short. Keep the decoded textures in a cache in
   `/var/mobile/Media/Alpharune/`.
 
-## 1.0.0
+## 1.0.0 (done, 2026-10-19)
 
 - Play the shops, the menus, the ITEM and SPARE commands, and the secret
   boss.

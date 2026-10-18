@@ -4,6 +4,7 @@
 #include "ARAsm.h"
 #include "ar_audio.h"
 #include "ar_run.h"
+#include "ar_run_internal.h"
 #include "ar_vm.h"
 
 typedef struct {
@@ -561,4 +562,15 @@ AR_TEST(test_audio_loops_a_sound) {
     ARValue sound = ar_real(0);
     call(vm, "audio_stop_sound", 1, &sound);
     AR_EQUAL_INT(call(vm, "audio_is_playing", 1, &voice).r, 0);
+}
+
+AR_TEST(test_run_finds_a_file_in_any_case) {
+    NSString *dir = ARTestTemporaryDirectory();
+    [[NSFileManager defaultManager] createDirectoryAtPath:[dir stringByAppendingPathComponent:@"mus"]
+                              withIntermediateDirectories:YES attributes:nil error:nil];
+    [[NSData data] writeToFile:[dir stringByAppendingPathComponent:@"mus/audio_drone.ogg"] atomically:NO];
+    char out[1024];
+    AR_EXPECT(ar_run_find_any_case(dir.fileSystemRepresentation, "mus/AUDIO_DRONE.ogg", out, sizeof(out)));
+    AR_EQUAL(@(out), [dir stringByAppendingPathComponent:@"mus/audio_drone.ogg"]);
+    AR_EXPECT(!ar_run_find_any_case(dir.fileSystemRepresentation, "mus/other.ogg", out, sizeof(out)));
 }

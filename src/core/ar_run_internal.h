@@ -289,6 +289,10 @@ ARInstance *ar_run_instance(ARRun *run, ARValue v);
 int ar_run_image_number(ARRun *run, ARInstance *inst);
 // A path of the game in the save directory or in the game directory.
 void ar_run_path(ARRun *run, const char *name, int write, char *out, size_t size);
+// Finds the file in dir whose name is name in any case, as on Windows where
+// GameMaker made the game. Writes its path with the real name to out, and
+// returns 1; returns 0 when there is no such file.
+int ar_run_find_any_case(const char *dir, const char *name, char *out, size_t size);
 void ar_run_update_camera(ARRun *run, int camera);
 
 // ar_draw.c

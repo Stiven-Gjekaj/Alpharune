@@ -2,7 +2,9 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 
@@ -51,9 +53,45 @@ void ar_run_path(ARRun *run, const char *name, int write, char *out, size_t size
     // The music is in a directory of its own.
     if (run->music_dir[0]) {
         char music[1024];
-        snprintf(music, sizeof(music), "%s/%s", run->music_dir, strncmp(name, "mus/", 4) == 0 ? name + 4 : name);
-        if (stat(music, &st) == 0) snprintf(out, size, "%s", music);
+        const char *base = strncmp(name, "mus/", 4) == 0 ? name + 4 : name;
+        snprintf(music, sizeof(music), "%s/%s", run->music_dir, base);
+        if (stat(music, &st) == 0 || ar_run_find_any_case(run->music_dir, base, music, sizeof(music))) {
+            snprintf(out, size, "%s", music);
+            return;
+        }
     }
+    // The game names some files in other case than the files have, for
+    // example "AUDIO_DRONE.ogg" for audio_drone.ogg. The file system of the
+    // phone sees case.
+    char found[1024];
+    if (ar_run_find_any_case(run->save_dir, name, found, sizeof(found)) ||
+        ar_run_find_any_case(run->game_dir, name, found, sizeof(found))) {
+        snprintf(out, size, "%s", found);
+        return;
+    }
+    snprintf(out, size, "%s/%s", run->game_dir, name);
+}
+
+int ar_run_find_any_case(const char *dir, const char *name, char *out, size_t size) {
+    // The directories in name keep their case; only the last part changes.
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/%s", dir, name);
+    char *slash = strrchr(path, '/');
+    *slash = 0;
+    const char *base = slash + 1;
+    DIR *d = opendir(path);
+    if (!d) return 0;
+    int found = 0;
+    struct dirent *e;
+    while ((e = readdir(d)) != NULL) {
+        if (strcasecmp(e->d_name, base) == 0) {
+            snprintf(out, size, "%s/%s", path, e->d_name);
+            found = 1;
+            break;
+        }
+    }
+    closedir(d);
+    return found;
 }
 
 // ------------------------------------------------------------------ events

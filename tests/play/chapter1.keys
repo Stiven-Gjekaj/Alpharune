@@ -1,3 +1,16 @@
+# The keys of a play of Chapter 1 from the chapter select, for alpharune-mac
+# --script. Each line is "FRAME KEY [FRAMES]", or "+N KEY" for N frames
+# after the line before it.
+# The opening: the text goes on with Z.
+# The questions of the vessel: the first answer of each.
+# The name of the vessel: A, then END.
+# The rest of the opening, to the room of Kris.
+# The room of Kris, the house, the school, Noelle ("Yes. Ask."), Susie, the
+# closet, the fall, the save point, the eye puzzle (switches 3 and 2), the
+# dust pile, the chase (run right with X), the slide, Castle Town, the
+# legend ("Listen"), Lancer, Ralsei, the tutorial, the door, and the Field.
+# The "debug set" lines give Kris and Ralsei 900 HP for the battles.
+# Then: the tile puzzle (rounds by the clock), the maze, and Hathy.
 # Then: puzzle 2 (Susie at plot 37, then the three rounds for plot 38), and the door to the shop.
 60 Z            # Chapter 1 from the chapter select
 420 Z           # the first file

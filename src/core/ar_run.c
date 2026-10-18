@@ -1082,6 +1082,28 @@ void ar_run_debug(ARRun *run, const char *command) {
         }
         return;
     }
+    if (strcmp(command, "layers") == 0) {
+        for (int i = 0; i < run->layer_count; i++) {
+            ARLayerState *l = &run->layers[i];
+            fprintf(stderr, "  layer %d %s depth %.0f at %.0f,%.0f%s\n", l->id, l->name, l->depth, l->x, l->y,
+                    l->visible ? "" : " hidden");
+            for (int k = 0; k < l->element_count; k++) {
+                ARElement *e = ar_run_element(run, l->elements[k]);
+                if (!e) continue;
+                fprintf(stderr, "    element %d type %d sprite %s at %.0f,%.0f%s\n", e->id, e->type,
+                        e->sprite >= 0 && e->sprite < run->data->sprite_count ? run->data->sprites[e->sprite].name : "-",
+                        e->x, e->y, e->visible ? "" : " hidden");
+            }
+        }
+        for (int v = 0; v < AR_MAX_VIEWS; v++) {
+            ARView *view = &run->views[v];
+            if (!view->visible) continue;
+            ARCamera *c = &run->cameras[view->camera];
+            fprintf(stderr, "  view %d camera %d %.0f,%.0f %.0fx%.0f port %d,%d %dx%d\n", v, view->camera, c->x, c->y, c->w,
+                    c->h, view->xport, view->yport, view->wport, view->hport);
+        }
+        return;
+    }
     if (sscanf(command, "room %63s", word) == 1) {
         int r = ar_data_find_room(run->data, word);
         if (r < 0) r = atoi(word);

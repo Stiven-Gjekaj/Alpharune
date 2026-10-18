@@ -40,37 +40,16 @@
 #include "ar_data.h"
 #include "ar_gl.h"
 #include "ar_host.h"
+#include "ar_keys.h"
 #include "ar_run.h"
 
-typedef struct {
-    long frame;
-    int key;
-    int length;
-} KeyPress;
-
-// The script of a long play has many keys. A hold is at most MAX_HOLD
-// frames long, so each frame looks only at the keys of a window.
-#define MAX_KEYS 65536
-#define MAX_DEBUG 4096
-#define MAX_HOLD 2000
-
-static int compare_keys(const void *a, const void *b) {
-    const KeyPress *x = a, *y = b;
-    if (x->frame != y->frame) return x->frame < y->frame ? -1 : 1;
-    return 0;
+// The keys of the script, and the host functions that it calls.
+static void host_key(void *context, int key, int down) {
+    ar_run_key(ar_host_run((ARHost *)context), key, down);
 }
 
-static int key_code(const char *name) {
-    if (strcmp(name, "ENTER") == 0) return AR_VK_ENTER;
-    if (strcmp(name, "SHIFT") == 0) return AR_VK_SHIFT;
-    if (strcmp(name, "ESCAPE") == 0) return AR_VK_ESCAPE;
-    if (strcmp(name, "UP") == 0) return AR_VK_UP;
-    if (strcmp(name, "DOWN") == 0) return AR_VK_DOWN;
-    if (strcmp(name, "LEFT") == 0) return AR_VK_LEFT;
-    if (strcmp(name, "RIGHT") == 0) return AR_VK_RIGHT;
-    if (strcmp(name, "SPACE") == 0) return AR_VK_SPACE;
-    if (strlen(name) == 1) return toupper((unsigned char)name[0]);
-    return 0;
+static void host_debug(void *context, const char *command) {
+    ar_run_debug(ar_host_run((ARHost *)context), command);
 }
 
 static int save_png(const char *path, const uint8_t *rgba, int w, int h) {
@@ -98,11 +77,7 @@ int main(int argc, char **argv) {
         const char *game_dir = argv[1];
         long frames = 300, shot = 30;
         const char *out = "build/frames", *save = NULL, *room = NULL, *data_name = "game.ios", *serve = NULL;
-        static KeyPress keys[MAX_KEYS];
-        __block int key_count = 0;
-        static long debug_frames[MAX_DEBUG];
-        static const char *debug_commands[MAX_DEBUG];
-        __block int debug_count = 0;
+        ARKeys *keys = ar_keys_new();
         for (int i = 2; i < argc; i++) {
             if (strcmp(argv[i], "--frames") == 0 && i + 1 < argc) frames = atol(argv[++i]);
             else if (strcmp(argv[i], "--shot") == 0 && i + 1 < argc) shot = atol(argv[++i]);
@@ -111,58 +86,26 @@ int main(int argc, char **argv) {
             else if (strcmp(argv[i], "--room") == 0 && i + 1 < argc) room = argv[++i];
             else if (strcmp(argv[i], "--data") == 0 && i + 1 < argc) data_name = argv[++i];
             else if (strcmp(argv[i], "--serve") == 0 && i + 1 < argc) serve = argv[++i];
-            else if (strcmp(argv[i], "--debug") == 0 && i + 1 < argc && debug_count < MAX_DEBUG) {
+            else if (strcmp(argv[i], "--debug") == 0 && i + 1 < argc) {
                 char *colon = strchr(argv[i + 1], ':');
-                if (colon) {
-                    debug_frames[debug_count] = atol(argv[i + 1]);
-                    debug_commands[debug_count++] = colon + 1;
-                }
+                if (colon) ar_keys_add_debug(keys, atol(argv[i + 1]), colon + 1);
                 i++;
             }
-            else if ((strcmp(argv[i], "--key") == 0 || strcmp(argv[i], "--hold") == 0) && i + 1 < argc &&
-                     key_count < MAX_KEYS) {
+            else if ((strcmp(argv[i], "--key") == 0 || strcmp(argv[i], "--hold") == 0) && i + 1 < argc) {
                 char name[32];
                 long f = 0;
                 int length = 1;
                 if (sscanf(argv[i + 1], "%ld:%31[^:]:%d", &f, name, &length) >= 2) {
-                    keys[key_count].frame = f;
-                    keys[key_count].key = key_code(name);
-                    keys[key_count].length = length > 0 ? length : 1;
-                    key_count++;
+                    ar_keys_add_key(keys, f, ar_keys_key_code(name), length);
                 }
                 i++;
             } else if (strcmp(argv[i], "--script") == 0 && i + 1 < argc) {
-                FILE *f = fopen(argv[++i], "r");
-                if (!f) {
+                NSString *text = [NSString stringWithContentsOfFile:@(argv[++i]) encoding:NSUTF8StringEncoding error:nil];
+                if (!text) {
                     fprintf(stderr, "alpharune-mac: cannot read %s\n", argv[i]);
                     return 1;
                 }
-                char line[512];
-                long last = 0;
-                while (fgets(line, sizeof(line), f)) {
-                    char *hash = strchr(line, '#');
-                    if (hash) *hash = 0;
-                    line[strcspn(line, "\r\n")] = 0;
-                    char when[32], name[64];
-                    int length = 1;
-                    int n = sscanf(line, "%31s %63s %d", when, name, &length);
-                    if (n < 2) continue;
-                    long frame = when[0] == '+' ? last + atol(when + 1) : atol(when);
-                    last = frame;
-                    if (strcmp(name, "debug") == 0) {
-                        const char *rest = strstr(line, "debug") + 6;
-                        if (debug_count < MAX_DEBUG) {
-                            debug_frames[debug_count] = frame;
-                            debug_commands[debug_count++] = strdup(rest);
-                        }
-                    } else if (key_count < MAX_KEYS) {
-                        keys[key_count].frame = frame;
-                        keys[key_count].key = key_code(name);
-                        keys[key_count].length = n >= 3 && length > 0 ? length : 1;
-                        key_count++;
-                    }
-                }
-                fclose(f);
+                ar_keys_parse(keys, text.UTF8String);
             } else {
                 fprintf(stderr, "alpharune-mac: unknown option %s\n", argv[i]);
                 return 2;
@@ -180,12 +123,7 @@ int main(int argc, char **argv) {
         CGLContextObj context;
         CGLCreateContext(format, NULL, &context);
         CGLSetCurrentContext(context);
-        // The window of keys in each frame needs the keys in the order of
-        // their frames.
-        for (int k = 0; k < key_count; k++) {
-            if (keys[k].length > MAX_HOLD) keys[k].length = MAX_HOLD;
-        }
-        mergesort(keys, (size_t)key_count, sizeof(KeyPress), compare_keys);
+        ar_keys_sort(keys);
         if (!ar_gl_init(0)) {
             fprintf(stderr, "alpharune-mac: the shader does not compile\n");
             return 1;
@@ -228,27 +166,7 @@ int main(int argc, char **argv) {
         // Runs one frame with the keys of the script. Returns 0 at the end.
         int (^one_frame)(void) = ^int(void) {
             ARRun *run = ar_host_run(host);
-            // The releases go first, and a key that another hold still
-            // covers stays down.
-            static int low = 0;
-            while (low < key_count && keys[low].frame < f - MAX_HOLD) low++;
-            for (int k = low; k < key_count; k++) {
-                if (keys[k].frame > f) break;
-                if (keys[k].frame + keys[k].length != f) continue;
-                int held = 0;
-                for (int j = low; j < key_count && keys[j].frame <= f; j++) {
-                    if (j != k && keys[j].key == keys[k].key && keys[j].frame <= f &&
-                        f < keys[j].frame + keys[j].length)
-                        held = 1;
-                }
-                if (!held) ar_run_key(run, keys[k].key, 0);
-            }
-            for (int k = low; k < key_count && keys[k].frame <= f; k++) {
-                if (keys[k].frame == f) ar_run_key(run, keys[k].key, 1);
-            }
-            for (int k = 0; k < debug_count; k++) {
-                if (debug_frames[k] == f) ar_run_debug(run, debug_commands[k]);
-            }
+            ar_keys_step(keys, f, host_key, host_debug, host);
             if (room && f == 1) {
                 char command[128];
                 snprintf(command, sizeof(command), "room %s", room);
@@ -329,12 +247,7 @@ int main(int argc, char **argv) {
                         char name[32];
                         int length = 1;
                         sscanf(arg, "%31s %d", name, &length);
-                        if (key_count < MAX_KEYS) {
-                            keys[key_count].frame = f;
-                            keys[key_count].key = key_code(name);
-                            keys[key_count].length = length > 0 ? length : 1;
-                            key_count++;
-                        }
+                        ar_keys_add_key(keys, f, ar_keys_key_code(name), length);
                         if (record) {
                             if (length > 1) fprintf(record, "%ld %s %d\n", f, name, length);
                             else fprintf(record, "%ld %s\n", f, name);

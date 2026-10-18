@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include "ar_gl.h"
 #include "ar_host.h"
+#include "ar_keys.h"
 #include "ar_pads.h"
 #include "ar_run.h"
 
@@ -32,6 +33,11 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     BOOL _started;
 #ifdef AR_DEBUG
     CFTimeInterval _startTime;
+    // A replay of replay.keys: the keys, the next frame, and the room.
+    ARKeys *_replay;
+    long _replayFrame;
+    long _replayEnd;
+    char _replayRoom[128];
 #endif
     UILabel *_message;
     ARHost *_host;
@@ -95,6 +101,23 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
         return;
     }
     NSString *save = [kBaseDir stringByAppendingPathComponent:@"save"];
+#ifdef AR_DEBUG
+    // With replay.keys in the directory, a debug build plays it as fast as
+    // it can, as alpharune-mac --script does. The replay starts with an
+    // empty save directory and seed 1, so that it can match the Mac.
+    NSString *script = [kBaseDir stringByAppendingPathComponent:@"replay.keys"];
+    NSString *text = [NSString stringWithContentsOfFile:script encoding:NSUTF8StringEncoding error:nil];
+    if (text) {
+        _replay = ar_keys_new();
+        ar_keys_parse(_replay, text.UTF8String);
+        ar_keys_sort(_replay);
+        _replayEnd = ar_keys_last_frame(_replay) + 1;
+        save = [kBaseDir stringByAppendingPathComponent:@"replay-save"];
+        [[NSFileManager defaultManager] removeItemAtPath:save error:nil];
+        setenv("ALPHARUNE_SEED", "1", 1);
+        fprintf(stderr, "replay: %s to frame %ld\n", script.fileSystemRepresentation, _replayEnd);
+    }
+#endif
     mkdir(save.fileSystemRepresentation, 0755);
     ARHostConfig config;
     memset(&config, 0, sizeof(config));
@@ -179,8 +202,55 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
     [_context presentRenderbuffer:GL_RENDERBUFFER];
 }
 
+#ifdef AR_DEBUG
+static void replay_key(void *context, int key, int down) {
+    ar_run_key(ar_host_run((ARHost *)context), key, down);
+}
+
+static void replay_debug(void *context, const char *command) {
+    ar_run_debug(ar_host_run((ARHost *)context), command);
+}
+
+// Runs the frames of the replay for 25 ms of this display frame. Returns
+// NO when the game ends.
+- (BOOL)replayFrames {
+    CFTimeInterval start = CACurrentMediaTime();
+    do {
+        ar_keys_step(_replay, _replayFrame, replay_key, replay_debug, _host);
+        if (!ar_host_frame(_host)) return NO;
+        _replayFrame++;
+        const char *notice = ar_host_notice(_host);
+        if (notice) fprintf(stderr, "frame %ld: notice: %s\n", _replayFrame, notice);
+        const char *name = ar_run_room_name(ar_host_run(_host));
+        if (strcmp(name, _replayRoom) != 0) {
+            snprintf(_replayRoom, sizeof(_replayRoom), "%s", name);
+            fprintf(stderr, "room %ld %s\n", _replayFrame, name);
+        }
+        if (_replayFrame >= _replayEnd) {
+            fprintf(stderr, "replay: end at frame %ld, room %s\n", _replayFrame, name);
+            ar_keys_free(_replay);
+            _replay = NULL;
+            break;
+        }
+    } while (CACurrentMediaTime() - start < 0.025);
+    return YES;
+}
+#endif
+
 - (void)frame:(CADisplayLink *)link {
     [EAGLContext setCurrentContext:_context];
+#ifdef AR_DEBUG
+    if (_replay) {
+        if (![self replayFrames]) {
+            [_link invalidate];
+            _link = nil;
+            fprintf(stderr, "replay: the game ends at frame %ld: %s\n", _replayFrame, ar_host_error(_host));
+            return;
+        }
+        [self present];
+        return;
+    }
+#endif
     [self updateKeys];
 #ifdef AR_DEBUG
     [self debugCommands];

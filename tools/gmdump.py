@@ -199,3 +199,9 @@ if __name__ == '__main__':
         for c in dd.codes():
             if c['name'] == sys.argv[3]:
                 print(c); disasm(dd, c, refs)
+    elif cmd == 'all':
+        # The disassembly of each code entry, with its name before it.
+        refs = dd.refmap()
+        for c in dd.codes():
+            print('== ' + c['name'])
+            disasm(dd, c, refs)

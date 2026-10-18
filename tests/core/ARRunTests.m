@@ -273,6 +273,15 @@ AR_TEST(test_run_sees_a_key_press_for_one_frame) {
     AR_EQUAL_INT(global_of(vm, "pressed"), 1);
     ar_run_frame(g.run);
     AR_EQUAL_INT(global_of(vm, "held"), 0);
+    // A release and then a press in one frame: the key stays down.
+    ar_run_key(g.run, 'Z', 1);
+    ar_run_frame(g.run);
+    ar_run_key(g.run, 'Z', 0);
+    ar_run_key(g.run, 'Z', 1);
+    ar_run_frame(g.run);
+    ar_run_frame(g.run);
+    ar_run_frame(g.run);
+    AR_EQUAL_INT(global_of(vm, "held"), 1);
     end_game(&g);
 }
 

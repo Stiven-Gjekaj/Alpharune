@@ -1038,8 +1038,14 @@ int ar_run_frame(ARRun *run) {
 
 void ar_run_key(ARRun *run, int key, int down) {
     if (key < 0 || key > 255) return;
-    if (down) run->queued_down[key] = 1;
-    else run->queued_up[key] = 1;
+    // The events keep their order: a press after a release in one frame
+    // cancels the release.
+    if (down) {
+        run->queued_down[key] = 1;
+        run->queued_up[key] = 0;
+    } else {
+        run->queued_up[key] = 1;
+    }
 }
 
 double ar_run_speed(ARRun *run) {

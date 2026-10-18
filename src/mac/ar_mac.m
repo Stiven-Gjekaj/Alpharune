@@ -362,6 +362,11 @@ int main(int argc, char **argv) {
                         free(px);
                     } else if (strcmp(word, "debug") == 0) {
                         ar_run_debug(ar_host_run(host), arg);
+                        // A "set" changes the game, so the record keeps it.
+                        if (record && strncmp(arg, "set ", 4) == 0) {
+                            fprintf(record, "%ld debug %s\n", f, arg);
+                            fflush(record);
+                        }
                         fprintf(answer, "debug at %ld\n", f);
                     } else if (strcmp(word, "quit") == 0) {
                         quit = 1;

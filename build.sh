@@ -34,9 +34,12 @@ while [ $# -gt 0 ]; do
         *)
             # Put each object in build/obj, so that the source tree stays clean.
             obj="$ROOT/build/obj/$(echo "${1%.*}" | sed "s|^$ROOT/||; s|/|_|g").o"
+            # The code of other projects keeps its own warnings.
+            WARN="-Wall"
+            case "$1" in */third_party/*) WARN="-w" ;; esac
             # shellcheck disable=SC2086
             clang -target armv7-apple-ios6.0 -isysroot "$SDK" -Wno-incompatible-sysroot \
-                -marm -fobjc-arc -Os -ffp-contract=off -Wall -Werror=unguarded-availability $CFLAGS -c "$1" -o "$obj"
+                -marm -fobjc-arc -Os -ffp-contract=off $WARN -Werror=unguarded-availability $CFLAGS -c "$1" -o "$obj"
             OBJS="$OBJS $obj"
             ;;
     esac

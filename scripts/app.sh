@@ -14,7 +14,7 @@ mkdir -p "$APP"
 
 # shellcheck disable=SC2046
 "$ROOT/build.sh" "$APP/Alpharune" $DEBUG -I"$ROOT/src/core" -I"$ROOT/src/gfx" -I"$ROOT/src/ui" \
-    $(ls "$ROOT"/src/core/*.c "$ROOT"/src/gfx/*.c "$ROOT"/src/ui/*.m) \
+    $(ls "$ROOT"/src/core/*.c "$ROOT"/src/third_party/fdlibm/*.c "$ROOT"/src/gfx/*.c "$ROOT"/src/ui/*.m) \
     -lz -lbz2 -framework Foundation -framework UIKit -framework CoreGraphics -framework QuartzCore \
     -framework OpenGLES -framework AudioToolbox \
     2>&1 | grep -v 'liblaunch.dylib' >&2 || true

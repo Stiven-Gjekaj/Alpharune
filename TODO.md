@@ -85,7 +85,7 @@ calls 354 functions that are not its own scripts. The chapter select,
 - Check the replay to the end of Chapter 1 before each release
   (`scripts/replay.sh`).
 
-## 0.8: the speed and the memory
+## 0.8: the speed and the memory (done, 2026-10-18)
 
 - Measure the frame rate of each room on the A5, and fix each slow room.
 - Measure the memory. The 7 texture pages of 2048 x 2048 take 112 MiB

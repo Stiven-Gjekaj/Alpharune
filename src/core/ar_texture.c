@@ -1,8 +1,10 @@
 #include "ar_texture.h"
 
 #include <bzlib.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static uint32_t le32(const uint8_t *p) {
     return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24;
@@ -123,5 +125,70 @@ uint8_t *ar_texture_decode(const uint8_t *bytes, size_t size, int *width, int *h
     uint8_t *pixels = NULL;
     if (status == BZ_OK) pixels = ar_texture_decode_qoi((const uint8_t *)image, got, width, height);
     free(image);
+    return pixels;
+}
+
+// FNV-1a over the page bytes.
+static uint32_t hash(const uint8_t *bytes, size_t size) {
+    uint32_t h = 2166136261u;
+    for (size_t i = 0; i < size; i++) h = (h ^ bytes[i]) * 16777619u;
+    return h;
+}
+
+void ar_texture_cache_path(const char *cache_dir, const uint8_t *bytes, size_t size, char *path, size_t path_size) {
+    snprintf(path, path_size, "%s/page-%08x-%zu.rgba", cache_dir, hash(bytes, size), size);
+}
+
+// A cache file: "ARTC", the width and the height (32 bits each, little
+// endian), then the pixels.
+static uint8_t *cache_read(const char *path, int *width, int *height) {
+    FILE *f = fopen(path, "rb");
+    if (!f) return NULL;
+    uint8_t head[12];
+    uint8_t *pixels = NULL;
+    if (fread(head, 1, 12, f) == 12 && memcmp(head, "ARTC", 4) == 0) {
+        uint32_t w = le32(head + 4), h = le32(head + 8);
+        if (w > 0 && h > 0 && w <= 8192 && h <= 8192) {
+            size_t n = (size_t)w * h * 4;
+            pixels = malloc(n);
+            if (pixels && fread(pixels, 1, n, f) == n) {
+                *width = (int)w;
+                *height = (int)h;
+            } else {
+                free(pixels);
+                pixels = NULL;
+            }
+        }
+    }
+    fclose(f);
+    return pixels;
+}
+
+// Writes to a temporary file and renames it, so that a stop in the middle
+// leaves no half file.
+static void cache_write(const char *path, const uint8_t *pixels, int width, int height) {
+    char temp[1100];
+    snprintf(temp, sizeof(temp), "%s.part", path);
+    FILE *f = fopen(temp, "wb");
+    if (!f) return;
+    uint8_t head[12] = {'A', 'R', 'T', 'C'};
+    for (int i = 0; i < 4; i++) {
+        head[4 + i] = (uint8_t)((uint32_t)width >> (8 * i));
+        head[8 + i] = (uint8_t)((uint32_t)height >> (8 * i));
+    }
+    size_t n = (size_t)width * (size_t)height * 4;
+    int ok = fwrite(head, 1, 12, f) == 12 && fwrite(pixels, 1, n, f) == n;
+    ok = fclose(f) == 0 && ok;
+    if (!ok || rename(temp, path) != 0) unlink(temp);
+}
+
+uint8_t *ar_texture_cached(const char *cache_dir, const uint8_t *bytes, size_t size, int *width, int *height) {
+    if (!cache_dir) return ar_texture_decode(bytes, size, width, height);
+    char path[1024];
+    ar_texture_cache_path(cache_dir, bytes, size, path, sizeof(path));
+    uint8_t *pixels = cache_read(path, width, height);
+    if (pixels) return pixels;
+    pixels = ar_texture_decode(bytes, size, width, height);
+    if (pixels) cache_write(path, pixels, *width, *height);
     return pixels;
 }

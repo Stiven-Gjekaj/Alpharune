@@ -15,6 +15,16 @@
 // can decode. The caller frees the pixels.
 uint8_t *ar_texture_decode(const uint8_t *bytes, size_t size, int *width, int *height);
 
+// Like ar_texture_decode, with a cache of the pixels in cache_dir. A page
+// that is in the cache loads from its file; the A5 reads a page of 2048 x
+// 2048 in about 100 ms, and decodes it in 220 to 600 ms. Each file has the
+// hash of the page bytes in its name, so a new data file makes new files.
+// With cache_dir NULL, it only decodes.
+uint8_t *ar_texture_cached(const char *cache_dir, const uint8_t *bytes, size_t size, int *width, int *height);
+
+// The path of the cache file of the page bytes in cache_dir.
+void ar_texture_cache_path(const char *cache_dir, const uint8_t *bytes, size_t size, char *path, size_t path_size);
+
 // Decodes only a "fioq" image.
 uint8_t *ar_texture_decode_qoi(const uint8_t *bytes, size_t size, int *width, int *height);
 

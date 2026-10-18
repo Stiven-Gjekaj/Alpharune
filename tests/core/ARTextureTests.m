@@ -114,3 +114,61 @@ AR_TEST(test_texture_decodes_an_image_in_a_bzip2_stream) {
         free(pixels);
     }
 }
+
+// A new directory in the temporary directory, for one test.
+static NSString *temp_dir(void) {
+    char path[1024];
+    snprintf(path, sizeof(path), "%s/ar-texture-XXXXXX", getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp");
+    return mkdtemp(path) ? @(path) : nil;
+}
+
+AR_TEST(test_texture_cache_writes_the_pixels_of_a_new_page) {
+    const uint8_t body[] = {0xFE, 10, 20, 30};
+    NSData *d = qoi(1, 1, body, sizeof(body));
+    NSString *dir = temp_dir();
+    int w = 0, h = 0;
+    uint8_t *pixels = ar_texture_cached(dir.fileSystemRepresentation, d.bytes, d.length, &w, &h);
+    AR_EXPECT(pixels != NULL);
+    AR_EQUAL_INT(pixel(pixels, 0), 0x0A141EFFu);
+    free(pixels);
+    char path[1024];
+    ar_texture_cache_path(dir.fileSystemRepresentation, d.bytes, d.length, path, sizeof(path));
+    NSData *file = [NSData dataWithContentsOfFile:@(path)];
+    AR_EQUAL_INT(file.length, 12 + 4);
+    AR_EXPECT(memcmp(file.bytes, "ARTC", 4) == 0);
+    [[NSFileManager defaultManager] removeItemAtPath:dir error:nil];
+}
+
+AR_TEST(test_texture_cache_reads_a_page_from_its_file) {
+    const uint8_t body[] = {0xFE, 10, 20, 30};
+    NSData *d = qoi(1, 1, body, sizeof(body));
+    NSString *dir = temp_dir();
+    // A cache file with other pixels than the page: the cache must use the
+    // file and not decode.
+    char path[1024];
+    ar_texture_cache_path(dir.fileSystemRepresentation, d.bytes, d.length, path, sizeof(path));
+    const uint8_t file[] = {'A', 'R', 'T', 'C', 2, 0, 0, 0, 1, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8};
+    [[NSData dataWithBytes:file length:sizeof(file)] writeToFile:@(path) atomically:NO];
+    int w = 0, h = 0;
+    uint8_t *pixels = ar_texture_cached(dir.fileSystemRepresentation, d.bytes, d.length, &w, &h);
+    AR_EQUAL_INT(w, 2);
+    AR_EQUAL_INT(h, 1);
+    AR_EQUAL_INT(pixel(pixels, 1), 0x05060708u);
+    free(pixels);
+    [[NSFileManager defaultManager] removeItemAtPath:dir error:nil];
+}
+
+AR_TEST(test_texture_cache_decodes_again_when_the_file_is_short) {
+    const uint8_t body[] = {0xFE, 10, 20, 30};
+    NSData *d = qoi(1, 1, body, sizeof(body));
+    NSString *dir = temp_dir();
+    char path[1024];
+    ar_texture_cache_path(dir.fileSystemRepresentation, d.bytes, d.length, path, sizeof(path));
+    const uint8_t file[] = {'A', 'R', 'T', 'C', 1, 0, 0, 0, 1, 0, 0, 0, 9};
+    [[NSData dataWithBytes:file length:sizeof(file)] writeToFile:@(path) atomically:NO];
+    int w = 0, h = 0;
+    uint8_t *pixels = ar_texture_cached(dir.fileSystemRepresentation, d.bytes, d.length, &w, &h);
+    AR_EQUAL_INT(pixel(pixels, 0), 0x0A141EFFu);
+    free(pixels);
+    [[NSFileManager defaultManager] removeItemAtPath:dir error:nil];
+}

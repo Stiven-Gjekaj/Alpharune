@@ -120,6 +120,13 @@ const char *ar_vm_function_name(ARVM *vm, int32_t function);
 ARInstance *ar_vm_instance_new(ARVM *vm, int32_t object, int32_t id);
 // Takes out each destroyed instance and frees it.
 void ar_vm_remove_destroyed(ARVM *vm);
+// Takes an instance out of the list and keeps it, for a persistent room.
+// The caller marks its variables for the collector until it comes back.
+void ar_vm_instance_detach(ARVM *vm, ARInstance *inst);
+// Puts a detached instance back at the end of the list.
+void ar_vm_instance_attach(ARVM *vm, ARInstance *inst);
+// Frees a detached instance.
+void ar_vm_instance_free(ARVM *vm, ARInstance *inst);
 ARInstance *ar_vm_find_instance(ARVM *vm, int32_t id);
 int ar_vm_instance_count(ARVM *vm);
 ARInstance *ar_vm_instance_at(ARVM *vm, int index);

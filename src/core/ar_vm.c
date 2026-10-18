@@ -876,6 +876,32 @@ ARInstance *ar_vm_instance_new(ARVM *vm, int32_t object, int32_t id) {
     return inst;
 }
 
+void ar_vm_instance_detach(ARVM *vm, ARInstance *inst) {
+    for (int32_t i = 0; i < vm->instance_count; i++) {
+        if (vm->instances[i] != inst) continue;
+        memmove(&vm->instances[i], &vm->instances[i + 1], sizeof(ARInstance *) * (size_t)(vm->instance_count - i - 1));
+        vm->instance_count--;
+        id_table_remove(vm, inst);
+        return;
+    }
+}
+
+void ar_vm_instance_attach(ARVM *vm, ARInstance *inst) {
+    if (vm->instance_count >= vm->instance_capacity) {
+        vm->instance_capacity = vm->instance_capacity ? vm->instance_capacity * 2 : 64;
+        vm->instances = realloc(vm->instances, sizeof(ARInstance *) * (size_t)vm->instance_capacity);
+    }
+    vm->instances[vm->instance_count++] = inst;
+    id_table_put(vm, inst);
+}
+
+void ar_vm_instance_free(ARVM *vm, ARInstance *inst) {
+    (void)vm;
+    inst->vars->h.fixed = 0;
+    inst->vars->instance = NULL;
+    free(inst);
+}
+
 void ar_vm_remove_destroyed(ARVM *vm) {
     int32_t n = 0;
     for (int32_t i = 0; i < vm->instance_count; i++) {

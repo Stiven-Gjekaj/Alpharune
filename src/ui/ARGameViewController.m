@@ -2,6 +2,7 @@
 #import <OpenGLES/ES2/gl.h>
 #import <QuartzCore/QuartzCore.h>
 #import "ARGameViewController.h"
+#import "ARAudioOutput.h"
 #include <sys/stat.h>
 #include "ar_gl.h"
 #include "ar_host.h"
@@ -102,6 +103,7 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
         [self showMessage:text];
         return;
     }
+    if (!ar_audio_output_start()) fprintf(stderr, "audio: the output does not start\n");
     _link = [CADisplayLink displayLinkWithTarget:self selector:@selector(frame:)];
     [self setRate];
     [_link addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
@@ -258,6 +260,7 @@ static NSString *const kBaseDir = @"/var/mobile/Media/Alpharune";
 
 - (void)setPaused:(BOOL)paused {
     _link.paused = paused;
+    ar_audio_output_set_active(!paused);
     if (paused) [_touches removeAllObjects];
 }
 

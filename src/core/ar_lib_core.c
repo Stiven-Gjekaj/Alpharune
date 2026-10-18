@@ -2,6 +2,7 @@
 // scripts, and the ds structures.
 
 #include <ctype.h>
+#include "ar_math.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,27 +37,27 @@ FN(f_sqr) {
     double x = ar_arg_real(argc, a, 0, 0);
     return ar_real(x * x);
 }
-FN(f_power) { UNUSED; return ar_real(pow(ar_arg_real(argc, a, 0, 0), ar_arg_real(argc, a, 1, 1))); }
-FN(f_exp) { UNUSED; return ar_real(exp(ar_arg_real(argc, a, 0, 0))); }
-FN(f_ln) { UNUSED; return ar_real(log(ar_arg_real(argc, a, 0, 1))); }
-FN(f_log2) { UNUSED; return ar_real(log2(ar_arg_real(argc, a, 0, 1))); }
-FN(f_log10) { UNUSED; return ar_real(log10(ar_arg_real(argc, a, 0, 1))); }
-FN(f_sin) { UNUSED; return ar_real(sin(ar_arg_real(argc, a, 0, 0))); }
-FN(f_cos) { UNUSED; return ar_real(cos(ar_arg_real(argc, a, 0, 0))); }
-FN(f_tan) { UNUSED; return ar_real(tan(ar_arg_real(argc, a, 0, 0))); }
-FN(f_arcsin) { UNUSED; return ar_real(asin(ar_arg_real(argc, a, 0, 0))); }
-FN(f_arccos) { UNUSED; return ar_real(acos(ar_arg_real(argc, a, 0, 0))); }
-FN(f_arctan) { UNUSED; return ar_real(atan(ar_arg_real(argc, a, 0, 0))); }
-FN(f_arctan2) { UNUSED; return ar_real(atan2(ar_arg_real(argc, a, 0, 0), ar_arg_real(argc, a, 1, 1))); }
-FN(f_dsin) { UNUSED; return ar_real(sin(ar_arg_real(argc, a, 0, 0) * M_PI / 180)); }
-FN(f_dcos) { UNUSED; return ar_real(cos(ar_arg_real(argc, a, 0, 0) * M_PI / 180)); }
-FN(f_dtan) { UNUSED; return ar_real(tan(ar_arg_real(argc, a, 0, 0) * M_PI / 180)); }
-FN(f_darcsin) { UNUSED; return ar_real(asin(ar_arg_real(argc, a, 0, 0)) * 180 / M_PI); }
-FN(f_darccos) { UNUSED; return ar_real(acos(ar_arg_real(argc, a, 0, 0)) * 180 / M_PI); }
-FN(f_darctan) { UNUSED; return ar_real(atan(ar_arg_real(argc, a, 0, 0)) * 180 / M_PI); }
+FN(f_power) { UNUSED; return ar_real(ar_pow(ar_arg_real(argc, a, 0, 0), ar_arg_real(argc, a, 1, 1))); }
+FN(f_exp) { UNUSED; return ar_real(ar_exp(ar_arg_real(argc, a, 0, 0))); }
+FN(f_ln) { UNUSED; return ar_real(ar_log(ar_arg_real(argc, a, 0, 1))); }
+FN(f_log2) { UNUSED; return ar_real(ar_log2(ar_arg_real(argc, a, 0, 1))); }
+FN(f_log10) { UNUSED; return ar_real(ar_log10(ar_arg_real(argc, a, 0, 1))); }
+FN(f_sin) { UNUSED; return ar_real(ar_sin(ar_arg_real(argc, a, 0, 0))); }
+FN(f_cos) { UNUSED; return ar_real(ar_cos(ar_arg_real(argc, a, 0, 0))); }
+FN(f_tan) { UNUSED; return ar_real(ar_tan(ar_arg_real(argc, a, 0, 0))); }
+FN(f_arcsin) { UNUSED; return ar_real(ar_asin(ar_arg_real(argc, a, 0, 0))); }
+FN(f_arccos) { UNUSED; return ar_real(ar_acos(ar_arg_real(argc, a, 0, 0))); }
+FN(f_arctan) { UNUSED; return ar_real(ar_atan(ar_arg_real(argc, a, 0, 0))); }
+FN(f_arctan2) { UNUSED; return ar_real(ar_atan2(ar_arg_real(argc, a, 0, 0), ar_arg_real(argc, a, 1, 1))); }
+FN(f_dsin) { UNUSED; return ar_real(ar_sin(ar_arg_real(argc, a, 0, 0) * M_PI / 180)); }
+FN(f_dcos) { UNUSED; return ar_real(ar_cos(ar_arg_real(argc, a, 0, 0) * M_PI / 180)); }
+FN(f_dtan) { UNUSED; return ar_real(ar_tan(ar_arg_real(argc, a, 0, 0) * M_PI / 180)); }
+FN(f_darcsin) { UNUSED; return ar_real(ar_asin(ar_arg_real(argc, a, 0, 0)) * 180 / M_PI); }
+FN(f_darccos) { UNUSED; return ar_real(ar_acos(ar_arg_real(argc, a, 0, 0)) * 180 / M_PI); }
+FN(f_darctan) { UNUSED; return ar_real(ar_atan(ar_arg_real(argc, a, 0, 0)) * 180 / M_PI); }
 FN(f_darctan2) {
     UNUSED;
-    return ar_real(atan2(ar_arg_real(argc, a, 0, 0), ar_arg_real(argc, a, 1, 1)) * 180 / M_PI);
+    return ar_real(ar_atan2(ar_arg_real(argc, a, 0, 0), ar_arg_real(argc, a, 1, 1)) * 180 / M_PI);
 }
 FN(f_degtorad) { UNUSED; return ar_real(ar_arg_real(argc, a, 0, 0) * M_PI / 180); }
 FN(f_radtodeg) { UNUSED; return ar_real(ar_arg_real(argc, a, 0, 0) * 180 / M_PI); }
@@ -111,7 +112,7 @@ FN(f_point_distance) {
 
 static double direction_of(double dx, double dy) {
     if (dx == 0 && dy == 0) return 0;
-    double d = atan2(-dy, dx) * 180 / M_PI;
+    double d = ar_atan2(-dy, dx) * 180 / M_PI;
     return d < 0 ? d + 360 : d;
 }
 
@@ -123,12 +124,12 @@ FN(f_point_direction) {
 
 FN(f_lengthdir_x) {
     UNUSED;
-    return ar_real(ar_arg_real(argc, a, 0, 0) * cos(ar_arg_real(argc, a, 1, 0) * M_PI / 180));
+    return ar_real(ar_arg_real(argc, a, 0, 0) * ar_cos(ar_arg_real(argc, a, 1, 0) * M_PI / 180));
 }
 
 FN(f_lengthdir_y) {
     UNUSED;
-    return ar_real(-ar_arg_real(argc, a, 0, 0) * sin(ar_arg_real(argc, a, 1, 0) * M_PI / 180));
+    return ar_real(-ar_arg_real(argc, a, 0, 0) * ar_sin(ar_arg_real(argc, a, 1, 0) * M_PI / 180));
 }
 
 FN(f_angle_difference) {

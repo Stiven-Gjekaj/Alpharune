@@ -2,6 +2,7 @@
 // cameras, drawing, sprites, surfaces, and the keyboard.
 
 #include <math.h>
+#include "ar_math.h"
 #include <stdlib.h>
 #include <string.h>
 #include "ar_run_internal.h"
@@ -351,8 +352,8 @@ static void set_motion(ARInstance *s, double dir, double speed) {
     if (s->direction < 0) s->direction += 360;
     s->speed = speed;
     double r = s->direction * M_PI / 180;
-    s->hspeed = cos(r) * speed;
-    s->vspeed = -sin(r) * speed;
+    s->hspeed = ar_cos(r) * speed;
+    s->vspeed = -ar_sin(r) * speed;
 }
 
 FN(f_move_towards_point) {
@@ -360,7 +361,7 @@ FN(f_move_towards_point) {
     ARInstance *s = self_of(vm);
     if (!s) return ar_undefined();
     double dx = REAL(0, 0) - s->x, dy = REAL(1, 0) - s->y;
-    double dir = (dx == 0 && dy == 0) ? s->direction : atan2(-dy, dx) * 180 / M_PI;
+    double dir = (dx == 0 && dy == 0) ? s->direction : ar_atan2(-dy, dx) * 180 / M_PI;
     set_motion(s, dir, REAL(2, 0));
     return ar_undefined();
 }
@@ -377,11 +378,11 @@ FN(f_motion_add) {
     ARInstance *s = self_of(vm);
     if (!s) return ar_undefined();
     double r = REAL(0, 0) * M_PI / 180;
-    s->hspeed += cos(r) * REAL(1, 0);
-    s->vspeed -= sin(r) * REAL(1, 0);
+    s->hspeed += ar_cos(r) * REAL(1, 0);
+    s->vspeed -= ar_sin(r) * REAL(1, 0);
     s->speed = sqrt(s->hspeed * s->hspeed + s->vspeed * s->vspeed);
     if (s->speed != 0) {
-        double d = atan2(-s->vspeed, s->hspeed) * 180 / M_PI;
+        double d = ar_atan2(-s->vspeed, s->hspeed) * 180 / M_PI;
         s->direction = d < 0 ? d + 360 : d;
     }
     return ar_undefined();
@@ -1211,9 +1212,9 @@ FN(f_draw_arrow) {
     double x1 = REAL(0, 0), y1 = REAL(1, 0), x2 = REAL(2, 0), y2 = REAL(3, 0), size = REAL(4, 8);
     uint32_t c = run->draw_color;
     ar_draw_line(run, x1, y1, x2, y2, 1, c, c, run->draw_alpha);
-    double d = atan2(y2 - y1, x2 - x1);
-    ar_draw_triangle(run, x2, y2, x2 - cos(d - 0.4) * size, y2 - sin(d - 0.4) * size, x2 - cos(d + 0.4) * size,
-                     y2 - sin(d + 0.4) * size, c, c, c, run->draw_alpha, 0);
+    double d = ar_atan2(y2 - y1, x2 - x1);
+    ar_draw_triangle(run, x2, y2, x2 - ar_cos(d - 0.4) * size, y2 - ar_sin(d - 0.4) * size, x2 - ar_cos(d + 0.4) * size,
+                     y2 - ar_sin(d + 0.4) * size, c, c, c, run->draw_alpha, 0);
     return ar_undefined();
 }
 

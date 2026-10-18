@@ -2,6 +2,7 @@
 // shapes of GML, and the surfaces.
 
 #include <math.h>
+#include "ar_math.h"
 #include <stdlib.h>
 #include <string.h>
 #include "ar_run_internal.h"
@@ -145,7 +146,7 @@ void ar_draw_set_view(ARRun *run, double vx, double vy, double vw, double vh, do
         return;
     }
     // A turn about the center of the view.
-    double a = -angle * M_PI / 180.0, c = cos(a), s = sin(a);
+    double a = -angle * M_PI / 180.0, c = ar_cos(a), s = ar_sin(a);
     double cx = vx + vw / 2, cy = vy + vh / 2;
     run->ma = c * sx;
     run->mb = s * sy;
@@ -219,7 +220,7 @@ void ar_draw_item(ARRun *run, int item, double x, double y, double xscale, doubl
     double lx[4] = {l, r, r, l}, ly[4] = {t, t, b, b};
     double xs[4], ys[4];
     if (angle != 0) {
-        double a = angle * M_PI / 180.0, c = cos(a), s = sin(a);
+        double a = angle * M_PI / 180.0, c = ar_cos(a), s = ar_sin(a);
         for (int i = 0; i < 4; i++) {
             xs[i] = x + lx[i] * c + ly[i] * s;
             ys[i] = y - lx[i] * s + ly[i] * c;
@@ -372,8 +373,8 @@ void ar_draw_ellipse(ARRun *run, double x1, double y1, double x2, double y2, uin
     const int segments = 24;
     for (int i = 0; i < segments; i++) {
         double a0 = 2 * M_PI * i / segments, a1 = 2 * M_PI * (i + 1) / segments;
-        double px0 = cx + cos(a0) * rx, py0 = cy + sin(a0) * ry;
-        double px1 = cx + cos(a1) * rx, py1 = cy + sin(a1) * ry;
+        double px0 = cx + ar_cos(a0) * rx, py0 = cy + ar_sin(a0) * ry;
+        double px1 = cx + ar_cos(a1) * rx, py1 = cy + ar_sin(a1) * ry;
         if (outline) ar_draw_line(run, px0, py0, px1, py1, 1, c2, c2, alpha);
         else ar_draw_triangle(run, cx, cy, px0, py0, px1, py1, c1, c2, c2, alpha, 0);
     }
@@ -532,7 +533,7 @@ typedef struct {
 } TextJob;
 
 static void draw_char(ARRun *run, const Font *f, uint32_t c, double lx, double ly, const TextJob *job, double gw) {
-    double cs = cos(job->angle * M_PI / 180.0), sn = sin(job->angle * M_PI / 180.0);
+    double cs = ar_cos(job->angle * M_PI / 180.0), sn = ar_sin(job->angle * M_PI / 180.0);
     // A gradient: c1 at the left and c2 at the right of the line; c4 and c3
     // at the bottom. Each character takes the colors of its place.
     (void)gw;
@@ -672,7 +673,7 @@ void ar_draw_surface(ARRun *run, int surface, double x, double y, double xscale,
     double l = 0, t = 0, r = s->width * xscale, b = s->height * yscale;
     double lx[4] = {l, r, r, l}, ly[4] = {t, t, b, b};
     double xs[4], ys[4];
-    double a = angle * M_PI / 180.0, c = cos(a), sn = sin(a);
+    double a = angle * M_PI / 180.0, c = ar_cos(a), sn = ar_sin(a);
     for (int i = 0; i < 4; i++) {
         xs[i] = x + lx[i] * c + ly[i] * sn;
         ys[i] = y - lx[i] * sn + ly[i] * c;

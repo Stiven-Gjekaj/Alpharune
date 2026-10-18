@@ -1,4 +1,5 @@
 #include "ar_run_internal.h"
+#include "ar_math.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -308,7 +309,7 @@ static void mask_corners(const ARSprite *s, ARInstance *inst, double x, double y
     double l = s->margin_left - s->origin_x, r = s->margin_right + 1 - s->origin_x;
     double t = s->margin_top - s->origin_y, b = s->margin_bottom + 1 - s->origin_y;
     double lx[4] = {l, r, r, l}, ly[4] = {t, t, b, b};
-    double a = inst->image_angle * M_PI / 180.0, c = cos(a), sn = sin(a);
+    double a = inst->image_angle * M_PI / 180.0, c = ar_cos(a), sn = ar_sin(a);
     for (int i = 0; i < 4; i++) {
         double px = lx[i] * inst->image_xscale, py = ly[i] * inst->image_yscale;
         if (inst->image_angle != 0) {
@@ -353,7 +354,7 @@ static int point_in(ARRun *run, ARInstance *inst, double x, double y, double px,
     // The point in the coordinates of the sprite.
     double dx = px - x, dy = py - y;
     if (inst->image_angle != 0) {
-        double a = inst->image_angle * M_PI / 180.0, c = cos(a), sn = sin(a);
+        double a = inst->image_angle * M_PI / 180.0, c = ar_cos(a), sn = ar_sin(a);
         double rx = dx * c - dy * sn, ry = dx * sn + dy * c;
         dx = rx;
         dy = ry;
@@ -937,16 +938,16 @@ static void motion(ARInstance *inst) {
         if ((inst->speed > 0 && s < 0) || (inst->speed < 0 && s > 0)) s = 0;
         double a = inst->direction * M_PI / 180.0;
         inst->speed = s;
-        inst->hspeed = cos(a) * s;
-        inst->vspeed = -sin(a) * s;
+        inst->hspeed = ar_cos(a) * s;
+        inst->vspeed = -ar_sin(a) * s;
     }
     if (inst->gravity != 0) {
         double a = inst->gravity_direction * M_PI / 180.0;
-        inst->hspeed += cos(a) * inst->gravity;
-        inst->vspeed -= sin(a) * inst->gravity;
+        inst->hspeed += ar_cos(a) * inst->gravity;
+        inst->vspeed -= ar_sin(a) * inst->gravity;
         inst->speed = sqrt(inst->hspeed * inst->hspeed + inst->vspeed * inst->vspeed);
         if (inst->speed != 0) {
-            double d = atan2(-inst->vspeed, inst->hspeed) * 180.0 / M_PI;
+            double d = ar_atan2(-inst->vspeed, inst->hspeed) * 180.0 / M_PI;
             inst->direction = d < 0 ? d + 360 : d;
         }
     }
@@ -1401,15 +1402,15 @@ static void set_image_index(ARVM *vm, ARInstance *s, int i, ARValue v) {
 static void set_speeds_from_hv(ARInstance *s) {
     s->speed = sqrt(s->hspeed * s->hspeed + s->vspeed * s->vspeed);
     if (s->hspeed != 0 || s->vspeed != 0) {
-        double d = atan2(-s->vspeed, s->hspeed) * 180.0 / M_PI;
+        double d = ar_atan2(-s->vspeed, s->hspeed) * 180.0 / M_PI;
         s->direction = d < 0 ? d + 360 : d;
     }
 }
 
 static void set_speeds_from_polar(ARInstance *s) {
     double a = s->direction * M_PI / 180.0;
-    s->hspeed = cos(a) * s->speed;
-    s->vspeed = -sin(a) * s->speed;
+    s->hspeed = ar_cos(a) * s->speed;
+    s->vspeed = -ar_sin(a) * s->speed;
     if (fabs(s->hspeed) < 1e-10) s->hspeed = 0;
     if (fabs(s->vspeed) < 1e-10) s->vspeed = 0;
 }

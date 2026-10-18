@@ -176,6 +176,7 @@ struct ARVM {
 
     uint8_t *logged;  // One flag for each function, so that each message shows once.
     int log_count;
+    int quiet;        // Above 0, fault() writes nothing.
     void *user;
 };
 
@@ -258,7 +259,7 @@ const char *ar_vm_current_code(ARVM *vm) {
 
 static void fault(ARVM *vm, const char *format, ...) __attribute__((format(printf, 2, 3)));
 static void fault(ARVM *vm, const char *format, ...) {
-    if (vm->log_count > 200) return;
+    if (vm->log_count > 200 || vm->quiet) return;
     vm->log_count++;
     char text[256];
     va_list args;
@@ -1154,7 +1155,10 @@ static void write_var(ARVM *vm, Frame *f, ARValue t, int32_t var, int index, int
 // The array of a variable for a write of two indices. Makes the array, and
 // the inner array at the index, when they are not there.
 static ARValue inner_array(ARVM *vm, Frame *f, ARValue t, int32_t var, int index) {
+    // A variable that is not set yet is not a fault here: the write makes it.
+    vm->quiet++;
     ARValue outer = read_var(vm, f, t, var, 0, 0);
+    vm->quiet--;
     if (outer.type != AR_ARRAY) {
         outer = ar_arrayv(ar_array_new(vm->heap, 0));
         write_var(vm, f, t, var, 0, 0, outer);

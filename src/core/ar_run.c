@@ -1126,6 +1126,28 @@ int ar_run_restart_request(ARRun *run) {
     return run->restart;
 }
 
+// Prints a value for the debug commands: arrays to a depth, 16 items each.
+static void print_value(ARRun *run, ARValue v, int depth) {
+    if (v.type == AR_ARRAY) {
+        int length = v.a ? v.a->length : 0;
+        if (depth <= 0) {
+            fprintf(stderr, " [%d items]", length);
+            return;
+        }
+        fprintf(stderr, " [");
+        for (int k = 0; k < length && k < 16; k++) {
+            if (k) fprintf(stderr, ",");
+            print_value(run, v.a->items[k], depth - 1);
+        }
+        fprintf(stderr, length > 16 ? " ...]" : " ]");
+    } else if (v.type == AR_STRUCT || v.type == AR_METHOD) {
+        fprintf(stderr, " %s", v.type == AR_STRUCT ? "struct" : "method");
+    } else {
+        ARStr *text = ar_to_str(ar_vm_heap(run->vm), v);
+        fprintf(stderr, " %.40s", text ? text->text : "?");
+    }
+}
+
 void ar_run_debug(ARRun *run, const char *command) {
     char word[64];
     if (strcmp(command, "instances") == 0) {
@@ -1165,6 +1187,18 @@ void ar_run_debug(ARRun *run, const char *command) {
             fprintf(stderr, "  view %d camera %d %.0f,%.0f %.0fx%.0f port %d,%d %dx%d\n", v, view->camera, c->x, c->y, c->w,
                     c->h, view->xport, view->yport, view->wport, view->hport);
         }
+        return;
+    }
+    if (sscanf(command, "get %63s", word) == 1) {
+        // A global variable, with up to two levels of arrays.
+        ARValue *v = ar_vars_find(&ar_vm_global(run->vm)->vars, ar_vm_slot(run->vm, word));
+        if (!v) {
+            fprintf(stderr, "  %s is not set\n", word);
+            return;
+        }
+        fprintf(stderr, "  %s =", word);
+        print_value(run, *v, 2);
+        fprintf(stderr, "\n");
         return;
     }
     int id;

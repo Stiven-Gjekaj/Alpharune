@@ -78,6 +78,15 @@ Each entry gives the reason. The owner made these choices on 2026-10-18.
   on Windows, and the game names six music files in upper case. The file
   system of the phone sees case.
 
+## The math
+
+- **The runtime uses fdlibm for sin, cos, tan, the arc functions, exp,
+  log, and pow.** Reason: the math library of iOS 6 and the one of macOS
+  give different bits for these functions, and a replay of the Mac then
+  went another way on the phone, in the maze of the Field (2026-10-18).
+  fdlibm uses only the basic operations of IEEE 754, so the Mac and the
+  phone give the same bits. The tests check fixed bits on both.
+
 ## The speed on the A5
 
 - Measured with a debug build, 150 frames in each room (2026-10-18): each

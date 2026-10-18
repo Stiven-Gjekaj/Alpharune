@@ -4,3 +4,6 @@ sdks/
 
 # Build output
 build/
+
+# Python caches
+__pycache__/

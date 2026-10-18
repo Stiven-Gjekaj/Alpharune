@@ -127,7 +127,8 @@ typedef struct Frame {
     int32_t code;
     ARStruct *self, *other;
     ARValue *args;
-    int argc;
+    int argc;          // The count that the caller gave.
+    int arg_capacity;  // The slots of args, for a write past argc.
     Local *locals;
     int local_count, local_capacity;
     Local local_store[16];
@@ -1090,7 +1091,13 @@ static ARValue read_var(ARVM *vm, Frame *f, ARValue t, int32_t var, int index, i
     if (v->kind == V_ARGUMENT_COUNT) return ar_real(f->argc);
     if (v->kind == V_ARGUMENT || v->kind == V_ARGUMENTS) {
         int k = v->kind == V_ARGUMENT ? v->argument : index;
-        return k >= 0 && k < f->argc ? f->args[k] : ar_undefined();
+        ARValue arg = k >= 0 && k < f->arg_capacity ? f->args[k] : ar_undefined();
+        // argumentN[i] is an index of the array in argumentN.
+        if (v->kind == V_ARGUMENT && has_index) {
+            if (arg.type == AR_ARRAY) return ar_array_get(arg.a, index);
+            return index == 0 ? arg : ar_undefined();
+        }
+        return arg;
     }
     int32_t n = t.type == AR_STRUCT ? 0 : ar_to_int(t);
     if (t.type != AR_STRUCT && n == AR_LOCAL) {
@@ -1112,7 +1119,7 @@ static ARValue read_var(ARVM *vm, Frame *f, ARValue t, int32_t var, int index, i
         return ar_undefined();
     }
     Target r = target_of(vm, t, 0);
-    if (r.kind == 2) return index >= 0 && index < f->argc ? f->args[index] : ar_undefined();
+    if (r.kind == 2) return index >= 0 && index < f->arg_capacity ? f->args[index] : ar_undefined();
     return read_plain(vm, r.one, v, index, has_index);
 }
 
@@ -1120,7 +1127,13 @@ static void write_var(ARVM *vm, Frame *f, ARValue t, int32_t var, int index, int
     const VarRef *v = &vm->vars[var];
     if (v->kind == V_ARGUMENT || v->kind == V_ARGUMENTS) {
         int k = v->kind == V_ARGUMENT ? v->argument : index;
-        if (k >= 0 && k < f->argc) f->args[k] = value;
+        if (k < 0 || k >= f->arg_capacity) return;
+        if (v->kind == V_ARGUMENT && has_index) {
+            if (f->args[k].type != AR_ARRAY) f->args[k] = ar_arrayv(ar_array_new(vm->heap, 0));
+            ar_array_set(f->args[k].a, index, value);
+            return;
+        }
+        f->args[k] = value;
         return;
     }
     int32_t n = t.type == AR_STRUCT ? 0 : ar_to_int(t);
@@ -1287,6 +1300,7 @@ static ARValue call_function(ARVM *vm, int32_t function, ARStruct *self, ARStruc
         frame.other = other;
         frame.args = args;
         frame.argc = argc;
+        frame.arg_capacity = argc;
         frame.caller = vm->frame;
         frame.locals = frame.local_store;
         Frame *saved = vm->frame;
@@ -1436,14 +1450,17 @@ static ARValue run_code(ARVM *vm, int32_t code, ARStruct *self, ARStruct *other,
     f.locals = f.local_store;
     f.local_capacity = 16;
     // The arguments are a copy, because the code can set them.
+    // There are at least 16, so that the code can set argumentN past the
+    // count that the caller gave.
     ARValue arg_store[16];
-    int arg_count = argc;
+    int arg_count = argc > 16 ? argc : 16;
     int need = vm->data->codes[code].arguments;
     if (need > arg_count) arg_count = need;
     ARValue *arg_copy = arg_count <= 16 ? arg_store : malloc(sizeof(ARValue) * (size_t)arg_count);
     for (int i = 0; i < arg_count; i++) arg_copy[i] = i < argc ? args[i] : ar_undefined();
     f.args = arg_copy;
     f.argc = argc;
+    f.arg_capacity = arg_count;
     f.caller = vm->frame;
     vm->frame = &f;
     vm->depth++;

@@ -580,3 +580,36 @@ AR_TEST(test_vm_collector_keeps_the_variables_of_instances) {
     AR_EQUAL(@(ar_vars_find(&kris->vars->vars, ar_vm_slot(p.vm, "name"))->s->text), @"kept text");
     unlink_program(&p);
 }
+
+AR_TEST(test_vm_reads_an_index_of_an_argument) {
+    // argument0[1], as "pushi -15; push index; push.v 0.argument0 array".
+    Program p = {ar_asm_new()};
+    int code = ar_asm_code(p.a, "gml_Script_test", 1,
+                           "pushi -15\n"
+                           "pushi 1\n"
+                           "push.v 0.argument0 array\n"
+                           "ret.v\n");
+    AR_EXPECT(code >= 0);
+    AR_EXPECT(link_program(&p));
+    ARArray *arr = ar_array_new(ar_vm_heap(p.vm), 2);
+    arr->items[1] = ar_real(77);
+    ARValue arg = ar_arrayv(arr);
+    ARValue r = ar_vm_run(p.vm, code, NULL, NULL, 1, &arg);
+    AR_EQUAL_INT(r.r, 77);
+    unlink_program(&p);
+}
+
+AR_TEST(test_vm_keeps_a_write_to_an_argument_past_the_count) {
+    // if (argument2 == undefined) argument2 = 5; return argument2
+    ARValue r = run1("push.v -15.argument2\n"
+                     "pushbltn.v -6.undefined\n"
+                     "cmp.v.v eq\n"
+                     "bf keep\n"
+                     "pushi 5\n"
+                     "pop.v.i -15.argument2\n"
+                     "keep:\n"
+                     "push.v -15.argument2\n"
+                     "ret.v\n",
+                     0, NULL);
+    AR_EQUAL_INT(r.r, 5);
+}

@@ -30,6 +30,9 @@ int ar_host_frame(ARHost *host);
 
 ARRun *ar_host_run(ARHost *host);
 const char *ar_host_error(ARHost *host);
+// A message for the player, once, or NULL: for example that the chosen
+// chapter comes in a later version. The chapter select runs again then.
+const char *ar_host_notice(ARHost *host);
 // The directory of the current data file.
 const char *ar_host_dir(ARHost *host);
 

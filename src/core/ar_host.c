@@ -25,6 +25,7 @@ struct ARHost {
     int has_data;
     ARRun *run;
     char error[256];
+    char notice[256];
 };
 
 static void unload(ARHost *h) {
@@ -113,8 +114,25 @@ int ar_host_frame(ARHost *h) {
         else snprintf(h->dir, sizeof(h->dir), "%s", h->base);
         for (int i = 1; i < h->param_count; i++) free(h->params[i]);
         h->param_count = 1;
-        for (char *word = strtok(text, " "); word && h->param_count < MAX_PARAMS; word = strtok(NULL, " ")) {
-            h->params[h->param_count++] = strdup(word);
+        char path[1200];
+        snprintf(path, sizeof(path), "%s/%s", h->dir, h->data_name);
+        if (*rel && access(path, R_OK) != 0) {
+            // A chapter that this version does not play: the chapter select
+            // opens again, and the host shows a notice.
+            int chapter = 0;
+            for (const char *c = rel; *c && !chapter; c++) {
+                if (*c >= '1' && *c <= '9') chapter = atoi(c);
+            }
+            if (chapter) {
+                snprintf(h->notice, sizeof(h->notice), "Chapter %d comes in a later version of Alpharune.", chapter);
+            } else {
+                snprintf(h->notice, sizeof(h->notice), "There is no %s.", path);
+            }
+            snprintf(h->dir, sizeof(h->dir), "%s", h->base);
+        } else {
+            for (char *word = strtok(text, " "); word && h->param_count < MAX_PARAMS; word = strtok(NULL, " ")) {
+                h->params[h->param_count++] = strdup(word);
+            }
         }
     } else if (!ar_run_restart_request(h->run)) {
         return 0;
@@ -125,6 +143,14 @@ int ar_host_frame(ARHost *h) {
 
 ARRun *ar_host_run(ARHost *h) {
     return h->run;
+}
+
+const char *ar_host_notice(ARHost *h) {
+    if (!h->notice[0]) return NULL;
+    static char shown[256];
+    snprintf(shown, sizeof(shown), "%s", h->notice);
+    h->notice[0] = 0;
+    return shown;
 }
 
 const char *ar_host_error(ARHost *h) {

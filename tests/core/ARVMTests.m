@@ -613,3 +613,27 @@ AR_TEST(test_vm_keeps_a_write_to_an_argument_past_the_count) {
                      0, NULL);
     AR_EQUAL_INT(r.r, 5);
 }
+
+AR_TEST(test_vm_runs_with_on_an_instance_under_the_stacktop_marker) {
+    // with (argument0) { hp = 3 }, as "push.v argument0; pushi -9; pushenv".
+    Program p = {ar_asm_new()};
+    int code = ar_asm_code(p.a, "gml_Script_test", 1,
+                           "push.v -15.argument0\n"
+                           "pushi -9\n"
+                           "pushenv end\n"
+                           "body:\n"
+                           "pushi 3\n"
+                           "pop.v.i -1.hp\n"
+                           "end:\n"
+                           "popenv body\n"
+                           "exit.i\n");
+    AR_EXPECT(code >= 0);
+    AR_EXPECT(link_program(&p));
+    ARInstance *target = ar_vm_instance_new(p.vm, -1, 0);
+    ARValue arg = ar_real(target->id);
+    ar_vm_run(p.vm, code, NULL, NULL, 1, &arg);
+    ARValue *hp = ar_vars_find(&target->vars->vars, ar_vm_slot(p.vm, "hp"));
+    AR_EXPECT(hp != NULL);
+    AR_EQUAL_INT(hp ? hp->r : 0, 3);
+    unlink_program(&p);
+}

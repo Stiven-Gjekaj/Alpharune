@@ -1642,6 +1642,8 @@ static ARValue run_code(ARVM *vm, int32_t code, ARStruct *self, ARStruct *other,
 
         case I_PUSHENV: {
             ARValue target = POP();
+            // "pushi -9" marks the target that is under it on the stack.
+            if (target.type != AR_STRUCT && ar_is_number(target) && ar_to_int(target) == AR_STACKTOP) target = POP();
             ARStruct *list[1];
             int count = ar_vm_targets(vm, target, list, 0);
             if (count == 0) {

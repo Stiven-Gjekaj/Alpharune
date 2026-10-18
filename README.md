@@ -185,6 +185,15 @@ a script of keys, and takes commands through a pipe:
 build/alpharune-mac /Applications/DELTARUNE.app/Contents/Resources --frames 24038 --script tests/play/chapter1.keys
 ```
 
+A debug build plays `/var/mobile/Media/Alpharune/replay.keys` when the file
+is there, as fast as the phone can, and writes each change of the room to
+`log.txt`. `build/alpharune-mac ... --rooms` writes the same lines, so that
+the two can be compared:
+
+```
+scp tests/play/chapter1.keys iphone4s:/var/mobile/Media/Alpharune/replay.keys
+```
+
 `tools/gmdump.py` shows the chunks and the bytecode of a data file.
 
 ## Support

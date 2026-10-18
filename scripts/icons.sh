@@ -9,8 +9,9 @@ mkdir -p "$ROOT/build"
 clang -fobjc-arc -Wall "$ROOT/tools/logo.m" -framework Foundation -framework CoreGraphics -framework ImageIO \
     -o "$ROOT/build/logo"
 "$ROOT/build/logo" "$ROOT/assets/brand/logo-source.png" "$ROOT/assets/brand/logo.png" 32 >/dev/null
-# The icon: the heart on black, in a square. Its gloss is in the art, so
+# The icon: the heart in a transparent square. iOS 6 shows the home screen
+# through the transparent pixels. Its gloss is in the art, so
 # iOS adds no gloss (UIPrerenderedIcon).
-"$ROOT/build/logo" "$ROOT/assets/brand/logo-source.png" "$ROOT/build/icon-square.png" 32 000000 >/dev/null
+"$ROOT/build/logo" "$ROOT/assets/brand/logo-source.png" "$ROOT/build/icon-square.png" 32 none >/dev/null
 sips -z 57 57 "$ROOT/build/icon-square.png" --out "$ROOT/resources/Icon.png" >/dev/null
 sips -z 114 114 "$ROOT/build/icon-square.png" --out "$ROOT/resources/Icon@2x.png" >/dev/null

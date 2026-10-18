@@ -9,7 +9,8 @@
 // Usage: logo SOURCE.png OUTPUT.png CELL_SIZE [BACKGROUND]
 // CELL_SIZE is the size of one pixel of the heart in the output.
 // With BACKGROUND (for example 000000), the outside has that color and the
-// output is a square, for an app icon.
+// output is a square, for an app icon. With BACKGROUND "none", the output
+// is a square and the outside is transparent.
 
 #import <CoreGraphics/CoreGraphics.h>
 #import <Foundation/Foundation.h>
@@ -134,7 +135,8 @@ int main(int argc, char **argv) {
         // Draw the cells. The output has a margin of one cell.
         int ow = gw * cell_out, oh = gh * cell_out;
         int square = argc > 4;
-        unsigned background = square ? (unsigned)strtoul(argv[4], NULL, 16) : 0;
+        int clear = square && strcmp(argv[4], "none") == 0;
+        unsigned background = square && !clear ? (unsigned)strtoul(argv[4], NULL, 16) : 0;
         int side = ow > oh ? ow : oh;
         int px = square ? (side - ow) / 2 : 0, py = square ? (side - oh) / 2 : 0;
         int tw = square ? side : ow, th = square ? side : oh;
@@ -144,7 +146,7 @@ int main(int argc, char **argv) {
                 out[i * 4] = (uint8_t)(background >> 16);
                 out[i * 4 + 1] = (uint8_t)(background >> 8);
                 out[i * 4 + 2] = (uint8_t)background;
-                out[i * 4 + 3] = 255;
+                out[i * 4 + 3] = clear ? 0 : 255;
             }
         }
         // The gloss: an ellipse over the top of the heart. Its lower edge

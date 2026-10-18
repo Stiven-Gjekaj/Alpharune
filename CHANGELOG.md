@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.0.0 (2026-10-19)
+
+Chapter 1 of DELTARUNE plays from the start to the end on the iPhone 4S.
+A debug build of the app replayed all of `tests/play/chapter1.keys` on the
+phone: it went through the same 146 rooms at the same frames as the Mac,
+to the screen after the credits.
+
+- The runtime uses fdlibm for sin, cos, tan, the arc functions, exp, log,
+  and pow. The math library of iOS 6 and the one of macOS give different
+  bits, and the phone went another way in the maze of the Field. Now the
+  Mac and the phone give the same bits.
+- A debug build plays `/var/mobile/Media/Alpharune/replay.keys` as fast as
+  the phone can, with no sound, and writes each change of the room to
+  `log.txt`. `alpharune-mac --rooms` writes the same lines.
+- The Mac host and the app share the player of the key scripts (`ar_keys`).
+- Checked on the Mac: the shop of Seam, the menu, the ITEM, ACT, and SPARE
+  commands, and the fight with Jevil. For the fight, debug commands gave
+  the Door Key and set the HP and the attack.
+
+The replays set the HP and the attack of the party with debug commands, so
+that they do not lose a battle. Chapters 2 to 5 come in later versions.
+
 ## 0.8.0 (2026-10-18)
 
 This release measures the speed and the memory on the iPhone 4S, and
